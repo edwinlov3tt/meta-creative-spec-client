@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clear Storage - Creative Spec</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin-top: 0;
+      color: #333;
+    }
+    button {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #b91c1c;
+    }
+    .success {
+      background: #10b981;
+      color: white;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 20px;
+      display: none;
+    }
+    .info {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 12px;
+      margin: 20px 0;
+    }
+    pre {
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Clear Storage</h1>
+    
+    <div class="info">
+      <strong>Storage Usage:</strong>
+      <pre id="storage-info">Calculating...</pre>
+    </div>
+
+    <p>
+      If you're seeing <code>QuotaExceededError</code>, this page will help clear your localStorage
+      and resolve the issue.
+    </p>
+
+    <p>
+      <strong>What will be cleared:</strong>
+    </p>
+    <ul>
+      <li>Saved creative drafts</li>
+      <li>Autosave snapshots</li>
+      <li>All localStorage data for this app</li>
+    </ul>
+
+    <button onclick="clearStorage()">Clear All Storage</button>
+    
+    <div class="success" id="success">
+      ✅ Storage cleared successfully! You can now <a href="/" style="color: white; font-weight: bold;">return to the app</a>.
+    </div>
+  </div>
+
+  <script>
+    function getStorageSize() {
+      let total = 0;
+      for (const key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          const value = localStorage.getItem(key);
+          if (value) {
+            total += key.length + value.length;
+          }
+        }
+      }
+      return total;
+    }
+
+    function formatBytes(bytes) {
+      const kb = bytes / 1024;
+      const mb = kb / 1024;
+      if (mb >= 1) return `${mb.toFixed(2)} MB`;
+      if (kb >= 1) return `${kb.toFixed(2)} KB`;
+      return `${bytes} bytes`;
+    }
+
+    function updateStorageInfo() {
+      const size = getStorageSize();
+      const quota = 5 * 1024 * 1024; // 5MB typical quota
+      const percentage = (size / quota * 100).toFixed(1);
+      
+      let info = `Total: ${formatBytes(size)} / ~5 MB (${percentage}%)\n\n`;
+      
+      for (const key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          const value = localStorage.getItem(key);
+          if (value) {
+            const size = (key.length + value.length);
+            info += `${key}: ${formatBytes(size)}\n`;
+          }
+        }
+      }
+      
+      document.getElementById('storage-info').textContent = info;
+    }
+
+    function clearStorage() {
+      try {
+        localStorage.clear();
+        document.getElementById('success').style.display = 'block';
+        updateStorageInfo();
+      } catch (error) {
+        alert('Failed to clear storage: ' + error.message);
+      }
+    }
+
+    // Update on load
+    updateStorageInfo();
+  </script>
+</body>
+</html>
