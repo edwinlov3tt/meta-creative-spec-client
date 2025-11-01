@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { api, ApiError, API_BASE_URL as CREATIVE_API_BASE } from '@/services/api';
+import { api, ApiError, API_BASE_URL as CREATIVE_API_BASE, getProxiedR2Url } from '@/services/api';
 import { fileToBase64 } from '@/utils/file';
 import { slugify } from '@/utils/slugify';
 import { showToast } from '@/stores/toastStore';
@@ -1001,7 +1001,8 @@ export const useCreativeStore = create<CreativeStore>()(
 
                 // Fetch from R2 URL if available, otherwise use base64
                 if (creativeFiles.square.url) {
-                  const response = await fetch(creativeFiles.square.url);
+                  const proxiedUrl = getProxiedR2Url(creativeFiles.square.url);
+                  const response = await fetch(proxiedUrl);
                   const blob = await response.blob();
                   const arrayBuffer = await blob.arrayBuffer();
                   bytes = new Uint8Array(arrayBuffer);
@@ -1033,7 +1034,8 @@ export const useCreativeStore = create<CreativeStore>()(
 
                 // Fetch from R2 URL if available, otherwise use base64
                 if (creativeFiles.vertical.url) {
-                  const response = await fetch(creativeFiles.vertical.url);
+                  const proxiedUrl = getProxiedR2Url(creativeFiles.vertical.url);
+                  const response = await fetch(proxiedUrl);
                   const blob = await response.blob();
                   const arrayBuffer = await blob.arrayBuffer();
                   bytes = new Uint8Array(arrayBuffer);
@@ -1066,7 +1068,8 @@ export const useCreativeStore = create<CreativeStore>()(
 
                 // Fetch from R2 URL if available, otherwise use base64
                 if (creativeFile.url) {
-                  const response = await fetch(creativeFile.url);
+                  const proxiedUrl = getProxiedR2Url(creativeFile.url);
+                  const response = await fetch(proxiedUrl);
                   const blob = await response.blob();
                   const arrayBuffer = await blob.arrayBuffer();
                   bytes = new Uint8Array(arrayBuffer);

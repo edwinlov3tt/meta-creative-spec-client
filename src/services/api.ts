@@ -20,6 +20,39 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+// R2 Proxy Configuration
+// Direct R2 URLs have CORS issues, so we use a Cloudflare Worker proxy
+const R2_WORKER_PROXY_URL = 'https://creative-spec-r2-proxy.edwin-6f1.workers.dev';
+const R2_DIRECT_URL = 'https://pub-2e94e700ed3d408eb2e1aefe6da0cf5f.r2.dev';
+
+/**
+ * Transform a direct R2 URL to use the Cloudflare Worker proxy
+ * This fixes CORS issues when fetching creative files from the frontend
+ *
+ * @param url - R2 URL (direct or already proxied)
+ * @returns Proxied URL that supports CORS
+ *
+ * @example
+ * getProxiedR2Url('https://pub-2e94e700ed3d408eb2e1aefe6da0cf5f.r2.dev/file.jpg')
+ * // Returns: 'https://creative-spec-r2-proxy.edwin-6f1.workers.dev/file.jpg'
+ */
+export const getProxiedR2Url = (url: string): string => {
+  if (!url) return url;
+
+  // If already using worker proxy, return as-is
+  if (url.startsWith(R2_WORKER_PROXY_URL)) {
+    return url;
+  }
+
+  // If using direct R2 URL, transform to worker proxy
+  if (url.startsWith(R2_DIRECT_URL)) {
+    return url.replace(R2_DIRECT_URL, R2_WORKER_PROXY_URL);
+  }
+
+  // Otherwise return as-is (might be a blob URL or data URL)
+  return url;
+};
+
 class ApiError extends Error {
   constructor(public status: number, message: string, public details?: unknown) {
     super(message);
