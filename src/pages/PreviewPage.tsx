@@ -11,7 +11,6 @@ import { ApprovalProvider, useApproval } from '@/contexts/ApprovalContext';
 import { useCreativeStore } from '@/stores/creativeStore';
 import { Spinner } from '@/components/UI/Spinner';
 import { API_BASE_URL } from '@/services/api';
-import { PreviewToolbar } from '@/components/preview/PreviewToolbar';
 import type { ApprovalRequestWithDetails } from '@/types/approval';
 
 const PreviewPageContent: React.FC = () => {
@@ -92,11 +91,6 @@ const PreviewPageContent: React.FC = () => {
   return (
     <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <Header />
-
-      {/* Preview Toolbar with Share and Download buttons */}
-      {advertiser && adId && (
-        <PreviewToolbar advertiserIdentifier={advertiser} adId={adId} />
-      )}
 
       <main className="flex-1 min-h-0 overflow-hidden">
         <ResizablePanels

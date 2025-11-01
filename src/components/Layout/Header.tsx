@@ -473,6 +473,40 @@ export const Header: React.FC = () => {
                 Push to Ad Manager
               </Button>
             )}
+
+            {/* Share Link and Download Spec Buttons */}
+            <Button
+              onClick={async () => {
+                await navigator.clipboard.writeText(window.location.href);
+                showToast('Share link copied to clipboard', 'success');
+              }}
+              variant="outline"
+              size="sm"
+              title="Copy share link"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Share Link
+            </Button>
+
+            <Button
+              onClick={() => { void handleDownloadBundle(); }}
+              variant="meta"
+              size="sm"
+              title="Download creative spec bundle"
+              disabled={isExporting === 'bundle'}
+            >
+              {isExporting === 'bundle' ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Downloading…
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Spec
+                </>
+              )}
+            </Button>
           </div>
         )}
 
