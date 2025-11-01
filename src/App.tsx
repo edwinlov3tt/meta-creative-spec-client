@@ -68,17 +68,11 @@ function App() {
         // Set Facebook page data (this will set verification status to success)
         setFacebookPageData(facebookPageData);
 
-        // Get data from first ad if available
-        const firstAdBrief = ads && ads.length > 0 ? ads[0].brief : null;
-
-        // Pre-fill form fields from advertiser and first ad
+        // Pre-fill only advertiser data (Facebook link and website) - start fresh without any ad data
         updateBrief({
           facebookLink: `https://facebook.com/${advertiserData.username}`,
-          websiteUrl: advertiserData.page_data.website || '',
-          companyOverview: firstAdBrief?.companyOverview || '',
-          disableAI: firstAdBrief?.disableAI || false,
-          includeEmoji: firstAdBrief?.includeEmoji || false,
-          additionalInstructions: firstAdBrief?.additionalInstructions || ''
+          websiteUrl: advertiserData.page_data.website || ''
+          // Leave all other fields empty for fresh ad creation
         });
 
         // Store advertiser identifier
