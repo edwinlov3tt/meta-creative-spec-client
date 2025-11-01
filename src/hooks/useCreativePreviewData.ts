@@ -80,12 +80,10 @@ export const useCreativePreviewData = () => {
     // Prefer R2 URL over base64 (more efficient, less data in state)
     // Base64 is kept as fallback for localStorage and offline access
     if (selectedCreative.url) {
-      console.log('[Preview] Using R2 URL:', selectedCreative.url);
       return selectedCreative.url;
     }
 
     // Fall back to base64/blob data if no R2 URL
-    console.log('[Preview] Using base64/blob data (fallback)');
 
     const fileData = selectedCreative.data!;
     const fileType = selectedCreative.type;

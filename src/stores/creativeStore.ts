@@ -999,13 +999,24 @@ export const useCreativeStore = create<CreativeStore>()(
               try {
                 let bytes: Uint8Array;
 
-                // Fetch from R2 URL if available, otherwise use base64
+                // Try R2 URL first, fall back to base64 if CORS fails (localhost)
                 if (creativeFiles.square.url) {
-                  const proxiedUrl = getProxiedR2Url(creativeFiles.square.url);
-                  const response = await fetch(proxiedUrl);
-                  const blob = await response.blob();
-                  const arrayBuffer = await blob.arrayBuffer();
-                  bytes = new Uint8Array(arrayBuffer);
+                  try {
+                    const proxiedUrl = getProxiedR2Url(creativeFiles.square.url);
+                    const response = await fetch(proxiedUrl);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const blob = await response.blob();
+                    const arrayBuffer = await blob.arrayBuffer();
+                    bytes = new Uint8Array(arrayBuffer);
+                  } catch (fetchError) {
+                    // CORS error in localhost - fall back to base64 if available
+                    if (creativeFiles.square.data) {
+                      console.log('R2 fetch failed (CORS), using base64 fallback for square creative');
+                      bytes = base64ToUint8Array(creativeFiles.square.data);
+                    } else {
+                      throw new Error('R2 fetch failed and no base64 data available');
+                    }
+                  }
                 } else if (creativeFiles.square.data) {
                   bytes = base64ToUint8Array(creativeFiles.square.data);
                 } else {
@@ -1032,13 +1043,24 @@ export const useCreativeStore = create<CreativeStore>()(
               try {
                 let bytes: Uint8Array;
 
-                // Fetch from R2 URL if available, otherwise use base64
+                // Try R2 URL first, fall back to base64 if CORS fails (localhost)
                 if (creativeFiles.vertical.url) {
-                  const proxiedUrl = getProxiedR2Url(creativeFiles.vertical.url);
-                  const response = await fetch(proxiedUrl);
-                  const blob = await response.blob();
-                  const arrayBuffer = await blob.arrayBuffer();
-                  bytes = new Uint8Array(arrayBuffer);
+                  try {
+                    const proxiedUrl = getProxiedR2Url(creativeFiles.vertical.url);
+                    const response = await fetch(proxiedUrl);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const blob = await response.blob();
+                    const arrayBuffer = await blob.arrayBuffer();
+                    bytes = new Uint8Array(arrayBuffer);
+                  } catch (fetchError) {
+                    // CORS error in localhost - fall back to base64 if available
+                    if (creativeFiles.vertical.data) {
+                      console.log('R2 fetch failed (CORS), using base64 fallback for vertical creative');
+                      bytes = base64ToUint8Array(creativeFiles.vertical.data);
+                    } else {
+                      throw new Error('R2 fetch failed and no base64 data available');
+                    }
+                  }
                 } else if (creativeFiles.vertical.data) {
                   bytes = base64ToUint8Array(creativeFiles.vertical.data);
                 } else {
@@ -1066,13 +1088,24 @@ export const useCreativeStore = create<CreativeStore>()(
               try {
                 let bytes: Uint8Array;
 
-                // Fetch from R2 URL if available, otherwise use base64
+                // Try R2 URL first, fall back to base64 if CORS fails (localhost)
                 if (creativeFile.url) {
-                  const proxiedUrl = getProxiedR2Url(creativeFile.url);
-                  const response = await fetch(proxiedUrl);
-                  const blob = await response.blob();
-                  const arrayBuffer = await blob.arrayBuffer();
-                  bytes = new Uint8Array(arrayBuffer);
+                  try {
+                    const proxiedUrl = getProxiedR2Url(creativeFile.url);
+                    const response = await fetch(proxiedUrl);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const blob = await response.blob();
+                    const arrayBuffer = await blob.arrayBuffer();
+                    bytes = new Uint8Array(arrayBuffer);
+                  } catch (fetchError) {
+                    // CORS error in localhost - fall back to base64 if available
+                    if (creativeFile.data) {
+                      console.log('R2 fetch failed (CORS), using base64 fallback for creative file');
+                      bytes = base64ToUint8Array(creativeFile.data);
+                    } else {
+                      throw new Error('R2 fetch failed and no base64 data available');
+                    }
+                  }
                 } else if (creativeFile.data) {
                   bytes = base64ToUint8Array(creativeFile.data);
                 } else {
