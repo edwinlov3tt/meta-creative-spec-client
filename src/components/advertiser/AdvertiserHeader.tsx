@@ -111,7 +111,7 @@ export const AdvertiserHeader: React.FC<AdvertiserHeaderProps> = ({
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Back Link */}
         <Link
-          to="/ads"
+          to="/advertisers"
           className="inline-flex items-center gap-2 text-14 text-text-secondary hover:text-text-primary transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
