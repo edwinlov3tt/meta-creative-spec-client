@@ -237,22 +237,69 @@ export const MultiSetModal: React.FC<MultiSetModalProps> = ({
         isInCampaignContext: !!campaignContext
       });
 
-      // Prepare ad specs
-      const ads = selectedSetsList.map(set => ({
-        setName: set.name,
-        creativeFiles: {
-          square: set.square ? {
-            name: set.square.name,
-            size: set.square.size,
-            type: set.square.type
-          } : undefined,
-          vertical: set.vertical ? {
-            name: set.vertical.name,
-            size: set.vertical.size,
-            type: set.vertical.type
-          } : undefined
+      // Helper: Upload file to R2
+      const uploadToR2 = async (file: File): Promise<string | null> => {
+        try {
+          const reader = new FileReader();
+          const base64 = await new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+
+          const uploadResponse = await fetch(`${API_BASE_URL}/api/upload-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image: base64,
+              filename: file.name,
+              contentType: file.type
+            })
+          });
+
+          if (!uploadResponse.ok) return null;
+          const data = await uploadResponse.json();
+          return data.success ? data.url : null;
+        } catch (error) {
+          console.error('[MultiSetModal] R2 upload failed:', error);
+          return null;
         }
-      }));
+      };
+
+      // Upload files to R2 and prepare ad specs
+      const ads = [];
+      for (const set of selectedSetsList) {
+        const adData: any = {
+          setName: set.name,
+          creativeFiles: {}
+        };
+
+        // Upload square image if exists
+        if (set.square) {
+          const squareUrl = await uploadToR2(set.square);
+          if (squareUrl) {
+            adData.creativeFiles.square = {
+              url: squareUrl,
+              name: set.square.name,
+              type: set.square.type
+            };
+          }
+        }
+
+        // Upload vertical image if exists
+        if (set.vertical) {
+          const verticalUrl = await uploadToR2(set.vertical);
+          if (verticalUrl) {
+            adData.creativeFiles.vertical = {
+              url: verticalUrl,
+              name: set.vertical.name,
+              type: set.vertical.type
+            };
+          }
+        }
+
+        ads.push(adData);
+      }
 
       // Call bulk create API
       const response = await fetch(`${API_BASE_URL}/api/campaigns/bulk-create-ads`, {
