@@ -16,13 +16,10 @@ export const MetaInstreamPreview: React.FC<MetaInstreamPreviewProps> = ({
   };
 
   return (
-    <div className="meta-preview">
+    <div className="meta-preview w-full h-full">
       <div
-        className="bg-white rounded-lg overflow-hidden"
-        style={{
-          boxShadow: 'var(--card-box-shadow)',
-          maxWidth: '600px',
-        }}
+        className="bg-white rounded-md overflow-hidden w-full h-full flex flex-col"
+        style={{}}
       >
         {/* Skeleton Header */}
         <div className="p-3 flex items-center gap-2.5">

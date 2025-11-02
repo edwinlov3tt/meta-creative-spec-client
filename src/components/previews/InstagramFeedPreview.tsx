@@ -26,9 +26,8 @@ export const InstagramFeedPreview: React.FC<InstagramFeedPreviewProps> = ({
   return (
     <div className="meta-preview" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div
-        className="bg-white rounded-lg overflow-hidden"
+        className="bg-white rounded-md overflow-hidden"
         style={{
-          boxShadow: 'var(--card-box-shadow)',
           width: '100%',
           maxWidth: '100%',
           maxHeight: '100%',

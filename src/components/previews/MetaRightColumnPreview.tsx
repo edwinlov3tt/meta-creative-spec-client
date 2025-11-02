@@ -17,7 +17,7 @@ export const MetaRightColumnPreview: React.FC<MetaRightColumnPreviewProps> = ({
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
       <div
-        className="bg-white rounded-lg overflow-hidden"
+        className="bg-white rounded-md overflow-hidden"
         style={{
           width: '100%',
           maxWidth: '100%',

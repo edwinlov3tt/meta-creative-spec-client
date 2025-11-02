@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Target } from 'lucide-react';
+import { formatDate } from '@/utils/date';
 import type { CampaignCard as CampaignCardType } from '@/types/campaign';
 
 interface CampaignCardProps {
@@ -9,17 +10,8 @@ interface CampaignCardProps {
 }
 
 export const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, advertiserIdentifier }) => {
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const startDate = formatDate(campaign.start_date);
-  const endDate = formatDate(campaign.end_date);
+  const startDate = campaign.start_date ? formatDate(campaign.start_date) : null;
+  const endDate = campaign.end_date ? formatDate(campaign.end_date) : null;
 
   // Render thumbnail grid (2x2)
   const renderThumbnails = () => {

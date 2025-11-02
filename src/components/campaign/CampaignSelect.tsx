@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
+import { formatDate } from '@/utils/date';
 import { showToast } from '@/stores/toastStore';
+import { API_BASE_URL } from '@/services/api';
 import type { Campaign } from '@/types/campaign';
 
 interface CampaignSelectProps {
@@ -99,9 +101,9 @@ export const CampaignSelect: React.FC<CampaignSelectProps> = ({
                     )}
                     {(campaign.start_date || campaign.end_date) && (
                       <div className="text-11 text-text-muted mt-0.5">
-                        {campaign.start_date && new Date(campaign.start_date).toLocaleDateString()}
+                        {campaign.start_date && formatDate(campaign.start_date)}
                         {campaign.start_date && campaign.end_date && ' - '}
-                        {campaign.end_date && new Date(campaign.end_date).toLocaleDateString()}
+                        {campaign.end_date && formatDate(campaign.end_date)}
                       </div>
                     )}
                   </div>

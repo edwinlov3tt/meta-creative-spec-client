@@ -16,18 +16,16 @@ export const MetaSearchPreview: React.FC<MetaSearchPreviewProps> = ({
   };
 
   return (
-    <div className="meta-preview">
+    <div className="meta-preview w-full h-full">
       <div
-        className="flex items-center justify-center bg-gray-100 rounded-xl"
+        className="flex items-center justify-center bg-gray-100 rounded-xl w-full h-full"
         style={{
-          minHeight: '500px',
           padding: '24px',
         }}
       >
         <div
-          className="bg-white rounded-lg overflow-hidden"
+          className="bg-white rounded-lg overflow-hidden w-full max-w-[300px]"
           style={{
-            width: '300px',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
           }}
         >

@@ -4,6 +4,7 @@ import { CopyableField } from '@/components/UI/CopyableField';
 import { useCreativeStore } from '@/stores/creativeStore';
 import { useApproval } from '@/contexts/ApprovalContext';
 import { cn } from '@/utils/cn';
+import { formatDate } from '@/utils/date';
 
 interface ApprovalFormViewProps {
   isPreview?: boolean;
@@ -215,8 +216,8 @@ export const ApprovalFormView: React.FC<ApprovalFormViewProps> = ({ isPreview = 
                 <CopyableField label="Is Creative Flighted?" value={isFlighted ? 'Yes' : 'No'} />
                 {isFlighted && (
                   <div className="grid grid-cols-2 gap-3">
-                    <CopyableField label="Flight Start Date" value={flightStartDate || 'Not set'} />
-                    <CopyableField label="Flight End Date" value={flightEndDate || 'Not set'} />
+                    <CopyableField label="Flight Start Date" value={flightStartDate ? formatDate(flightStartDate) : 'Not set'} />
+                    <CopyableField label="Flight End Date" value={flightEndDate ? formatDate(flightEndDate) : 'Not set'} />
                   </div>
                 )}
               </>

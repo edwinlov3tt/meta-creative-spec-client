@@ -69,12 +69,9 @@ export const MetaStoryPreview: React.FC<MetaStoryPreviewProps> = ({
   // Messenger Stories Layout
   if (platform === 'messenger') {
     return (
-      <div className="meta-preview">
+      <div className="meta-preview w-full h-full">
         <div
-          className="bg-black rounded-xl overflow-hidden aspect-story relative"
-          style={{
-            maxWidth: '360px',
-          }}
+          className="bg-black rounded-md overflow-hidden relative w-full h-full"
         >
           {/* Progress Bar - 4px from top */}
           <div
@@ -187,12 +184,9 @@ export const MetaStoryPreview: React.FC<MetaStoryPreviewProps> = ({
 
   // Facebook & Instagram Stories Layout
   return (
-    <div className="meta-preview">
+    <div className="meta-preview w-full h-full">
       <div
-        className="bg-black rounded-xl overflow-hidden aspect-story relative"
-        style={{
-          maxWidth: '360px',
-        }}
+        className="bg-black rounded-md overflow-hidden relative w-full h-full"
       >
         {/* Progress Bar - Facebook and Instagram, 4px from top */}
         {(platform === 'facebook' || platform === 'instagram') && (

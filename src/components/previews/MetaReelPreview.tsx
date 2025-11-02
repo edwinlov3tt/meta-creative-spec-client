@@ -55,12 +55,9 @@ export const MetaReelPreview: React.FC<MetaReelPreviewProps> = ({
   }, [platform]);
 
   return (
-    <div className="meta-preview">
+    <div className="meta-preview w-full h-full">
       <div
-        className="bg-black rounded-xl overflow-hidden aspect-story relative"
-        style={{
-          maxWidth: '360px',
-        }}
+        className="bg-black rounded-md overflow-hidden relative w-full h-full"
       >
         {/* Reel Content */}
         {adData.creativeImage && (

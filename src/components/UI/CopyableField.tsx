@@ -78,7 +78,10 @@ export const CopyableField: React.FC<CopyableFieldProps> = ({
           {value || '(empty)'}
         </div>
         {(isHovered || copied) && (
-          <div className="absolute top-2 right-2 flex items-center gap-1 text-12 text-blue-600">
+          <div className={cn(
+            'absolute top-2 right-2 flex items-center gap-1 text-12',
+            copied ? 'text-green-600' : 'text-blue-600'
+          )}>
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5" />
@@ -87,7 +90,7 @@ export const CopyableField: React.FC<CopyableFieldProps> = ({
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span>Click to copy</span>
+                <span>Copy</span>
               </>
             )}
           </div>

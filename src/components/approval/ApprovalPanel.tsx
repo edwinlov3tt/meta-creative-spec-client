@@ -221,7 +221,7 @@ export const ApprovalPanel: React.FC<ApprovalPanelProps> = ({
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-11 sm:text-12 text-blue-700">
               <Clock className="w-3.5 h-3.5 inline mr-1" />
-              Expires: {new Date(approvalData.expires_at).toLocaleDateString()}
+              Expires: {new Date(approvalData.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
         )}

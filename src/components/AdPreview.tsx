@@ -1,19 +1,27 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Smartphone, Monitor, ChevronDown } from 'lucide-react';
-import { PreviewControls } from './preview/PreviewControls';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { Grid, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CombinedPreviewDropdown } from './preview/CombinedPreviewDropdown';
 import { FacebookPreview } from './preview/FacebookPreview';
 import { InstagramPreview } from './preview/InstagramPreview';
 import { useCreativeStore } from '@/stores/creativeStore';
 import { useCreativePreviewData } from '@/hooks/useCreativePreviewData';
+import { PLACEMENT_CONFIGS } from '@/types/previews';
+import type { PlacementPreview } from '@/types/previews';
 
-export const AdPreview: React.FC = () => {
+interface AdPreviewProps {
+  onShowAllViews?: () => void;
+}
+
+export const AdPreview: React.FC<AdPreviewProps> = ({ onShowAllViews }) => {
   const preview = useCreativeStore(state => state.preview);
   const setPreview = useCreativeStore(state => state.setPreview);
   const setPreviewNode = useCreativeStore(state => state.setPreviewNode);
 
-  const [showControls, setShowControls] = useState(false);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const previewCanvasRef = useRef<HTMLDivElement | null>(null);
+
+  // Maintain selected preview config ID separately
+  const [selectedPreviewId, setSelectedPreviewId] = useState<string>('fb-feed');
 
   const {
     platform,
@@ -23,15 +31,52 @@ export const AdPreview: React.FC = () => {
     adData
   } = useCreativePreviewData();
 
-  const handleSetPreview = (updates: Partial<typeof preview>) => {
-    const normalized: Partial<typeof preview> = { ...updates };
-    if (updates.adType && (updates.adType === 'story' || updates.adType === 'reel')) {
-      normalized.device = 'mobile';
-    }
-    if (updates.device && (adType === 'story' || adType === 'reel') && updates.device !== 'mobile') {
-      return; // stories/reels force mobile
-    }
-    setPreview(normalized);
+  // Get all enabled previews for navigation
+  const availablePreviews = useMemo(() => {
+    return PLACEMENT_CONFIGS.filter((config) => config.enabled);
+  }, []);
+
+  // Get current preview config by ID
+  const currentPreviewConfig = useMemo(() => {
+    const config = PLACEMENT_CONFIGS.find((c) => c.id === selectedPreviewId);
+    return config || PLACEMENT_CONFIGS[0];
+  }, [selectedPreviewId]);
+
+  const handlePreviewChange = (newPreview: PlacementPreview) => {
+    // Update the selected preview ID
+    setSelectedPreviewId(newPreview.id);
+
+    // Map placement back to adType
+    const newAdType = newPreview.placement === 'feed' ? 'feed'
+      : newPreview.placement === 'story' ? 'story'
+      : newPreview.placement === 'reel' ? 'reel'
+      : newPreview.placement === 'rightcolumn' ? 'feed'
+      : newPreview.placement === 'inbox' ? 'feed'
+      : newPreview.placement === 'explore' ? 'feed'
+      : newPreview.placement === 'instream' ? 'feed'
+      : newPreview.placement === 'search' ? 'feed'
+      : 'feed';
+
+    // Map platform (messenger -> facebook for compatibility)
+    const newPlatform = newPreview.platform === 'messenger' ? 'facebook' : newPreview.platform;
+
+    setPreview({
+      platform: newPlatform as 'facebook' | 'instagram',
+      device: newPreview.device as 'desktop' | 'mobile',
+      adType: newAdType,
+    });
+  };
+
+  const handlePreviousPreview = () => {
+    const currentIndex = availablePreviews.findIndex((p) => p.id === selectedPreviewId);
+    const previousIndex = (currentIndex - 1 + availablePreviews.length) % availablePreviews.length;
+    handlePreviewChange(availablePreviews[previousIndex]);
+  };
+
+  const handleNextPreview = () => {
+    const currentIndex = availablePreviews.findIndex((p) => p.id === selectedPreviewId);
+    const nextIndex = (currentIndex + 1) % availablePreviews.length;
+    handlePreviewChange(availablePreviews[nextIndex]);
   };
 
   useEffect(() => {
@@ -42,77 +87,78 @@ export const AdPreview: React.FC = () => {
   }, [setPreviewNode]);
 
   return (
-    <div
-      ref={previewRef}
-      className="bg-white border border-border rounded-card shadow-1 flex flex-col h-auto"
-    >
-      <div className="p-5 border-b border-divider">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {device === 'mobile' ? (
-              <Smartphone className="w-5 h-5 text-text-muted" />
-            ) : (
-              <Monitor className="w-5 h-5 text-text-muted" />
+    <>
+      <div
+        ref={previewRef}
+        className="bg-white flex flex-col h-auto rounded-lg"
+      >
+        {/* Control Bar */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-divider">
+            {onShowAllViews && (
+              <button
+                type="button"
+                onClick={onShowAllViews}
+                className="inline-flex items-center justify-center p-2 bg-meta-blue text-white rounded-md hover:bg-blue-600 transition-colors"
+                title="All Views"
+              >
+                <Grid className="w-4 h-4" />
+              </button>
             )}
-            <div>
-              <p className="text-12 text-text-muted uppercase tracking-wide">Preview</p>
-              <span className="text-14 font-semibold text-text-primary capitalize">
-                {platform} {adType} ({device})
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowControls(prev => !prev)}
-            className="inline-flex items-center gap-1 text-12 font-medium text-text-muted hover:text-text-primary ml-auto"
+
+            {/* Arrow Navigation */}
+            <button
+              type="button"
+              onClick={handlePreviousPreview}
+              className="inline-flex items-center justify-center p-2 bg-white border border-border rounded-md hover:bg-surface-50 transition-colors"
+              title="Previous preview"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Combined Dropdown */}
+            <CombinedPreviewDropdown
+              selectedPreview={currentPreviewConfig}
+              onPreviewChange={handlePreviewChange}
+            />
+
+            <button
+              type="button"
+              onClick={handleNextPreview}
+              className="inline-flex items-center justify-center p-2 bg-white border border-border rounded-md hover:bg-surface-50 transition-colors"
+              title="Next preview"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+        </div>
+
+        {/* Preview Canvas */}
+        <div className="flex-1 min-h-0 overflow-y-auto bg-canvas p-2 rounded-b-lg">
+          <div
+            ref={previewCanvasRef}
+            className={`mx-auto ${
+              device === 'mobile' ? 'max-w-sm' : 'max-w-md'
+            } ${
+              adType === 'story' || adType === 'reel' ? 'aspect-story' : ''
+            }`}
           >
-            <span>Settings</span>
-            <ChevronDown className={`w-4 h-4 transition-transform ${showControls ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
-
-        {showControls && (
-          <div className="mt-4">
-            <PreviewControls
-              platform={platform}
-              setPlatform={(value) => handleSetPreview({ platform: value })}
-              device={device}
-              setDevice={(value) => handleSetPreview({ device: value })}
-              adType={adType}
-              setAdType={(value) => handleSetPreview({ adType: value })}
-              adFormat={adFormat}
-              setAdFormat={(value) => handleSetPreview({ adFormat: value })}
-            />
+            {platform === 'facebook' ? (
+              <FacebookPreview
+                device={device}
+                adType={adType}
+                adFormat={adFormat}
+                adData={adData}
+              />
+            ) : (
+              <InstagramPreview
+                device={device}
+                adType={adType}
+                adFormat={adFormat}
+                adData={adData}
+              />
+            )}
           </div>
-        )}
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto bg-canvas p-5">
-        <div
-          ref={previewCanvasRef}
-          className={`mx-auto ${
-            device === 'mobile' ? 'max-w-sm' : 'max-w-md'
-          } ${
-            adType === 'story' || adType === 'reel' ? 'aspect-story' : ''
-          }`}
-        >
-          {platform === 'facebook' ? (
-            <FacebookPreview
-              device={device}
-              adType={adType}
-              adFormat={adFormat}
-              adData={adData}
-            />
-          ) : (
-            <InstagramPreview
-              device={device}
-              adType={adType}
-              adFormat={adFormat}
-              adData={adData}
-            />
-          )}
         </div>
       </div>
-    </div>
+    </>
   );
 };

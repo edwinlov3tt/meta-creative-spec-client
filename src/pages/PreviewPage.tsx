@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/Layout/Header';
 import { FormBuilder } from '@/components/FormBuilder';
@@ -12,14 +12,25 @@ import { useCreativeStore } from '@/stores/creativeStore';
 import { Spinner } from '@/components/UI/Spinner';
 import { API_BASE_URL } from '@/services/api';
 import type { ApprovalRequestWithDetails } from '@/types/approval';
+import { PreviewTabs } from '@/components/previews/PreviewTabs';
+import { PreviewsGrid } from '@/components/previews/PreviewsGrid';
+import type { PreviewPlatform, PreviewPlacement, PreviewAdData } from '@/types/previews';
 
 const PreviewPageContent: React.FC = () => {
   const { advertiser, adId } = useParams<{ advertiser: string; adId: string }>();
   const [searchParams] = useSearchParams();
   const loadPreviewData = useCreativeStore(state => state.loadPreviewData);
   const isPreviewMode = useCreativeStore(state => state.isPreviewMode);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [localApprovalData, setLocalApprovalData] = React.useState<ApprovalRequestWithDetails | null>(null);
+  const adCopy = useCreativeStore(state => state.adCopy);
+  const brief = useCreativeStore(state => state.brief);
+  const facebook = useCreativeStore(state => state.facebook);
+  const [isLoading, setIsLoading] = useState(true);
+  const [localApprovalData, setLocalApprovalData] = useState<ApprovalRequestWithDetails | null>(null);
+
+  // All Views state
+  const [showAllViews, setShowAllViews] = useState(false);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<PreviewPlatform[]>(['facebook', 'instagram', 'messenger']);
+  const [selectedPlacements, setSelectedPlacements] = useState<PreviewPlacement[]>(['feed', 'rightcolumn', 'story', 'reel', 'explore', 'instream', 'search', 'inbox']);
 
   const { setApprovalData, setUserEmail } = useApproval();
   const userEmail = searchParams.get('email') || undefined;
@@ -64,6 +75,70 @@ const PreviewPageContent: React.FC = () => {
     void load();
   }, [advertiser, adId, loadPreviewData, userEmail]);
 
+  // Generate comprehensive preview data
+  const comprehensiveAdData: PreviewAdData = useMemo(() => {
+    const pageData = facebook.pageData || {};
+    const brandName = pageData.name || adCopy.adName || 'Your Brand';
+
+    // Get profile image
+    let profileImage = '';
+    if (pageData.profile_picture) {
+      profileImage = pageData.profile_picture;
+    } else if (pageData.image) {
+      profileImage = pageData.image;
+    } else if (Array.isArray(pageData.Images)) {
+      const imageEntry = pageData.Images.find((entry: any) => entry?.type === 'facebook_profile_image');
+      if (imageEntry?.url) profileImage = imageEntry.url;
+    }
+    if (!profileImage && pageData.instagram_details?.result?.profile_pic_url) {
+      profileImage = pageData.instagram_details.result.profile_pic_url;
+    }
+
+    // Get creative image - prefer square, then vertical, then original
+    const creativeFiles = brief.creativeFiles || {};
+    let creativeImage = '';
+
+    if (creativeFiles.square?.url) {
+      creativeImage = creativeFiles.square.url;
+    } else if (creativeFiles.vertical?.url) {
+      creativeImage = creativeFiles.vertical.url;
+    } else if (brief.creativeFile?.url) {
+      creativeImage = brief.creativeFile.url;
+    } else if (creativeFiles.square?.data) {
+      creativeImage = `data:${creativeFiles.square.type};base64,${creativeFiles.square.data}`;
+    } else if (creativeFiles.vertical?.data) {
+      creativeImage = `data:${creativeFiles.vertical.type};base64,${creativeFiles.vertical.data}`;
+    } else if (brief.creativeFile?.data) {
+      creativeImage = `data:${brief.creativeFile.type};base64,${brief.creativeFile.data}`;
+    }
+
+    // Apply "See more" logic if character limit removed
+    const applySeeMore = (text: string, removeLimit: boolean) => {
+      if (!removeLimit) return text;
+      if (text.length <= 140) return text;
+      const visible = text.slice(0, 140).replace(/\s+$/, '');
+      return `${visible}… See more`;
+    };
+
+    const primaryText = applySeeMore(
+      adCopy.primaryText || '',
+      brief.removeCharacterLimit || false
+    );
+
+    return {
+      adName: adCopy.adName || '',
+      primaryText,
+      headline: adCopy.headline || 'Compelling headline',
+      description: adCopy.description || 'Short supporting copy',
+      callToAction: adCopy.callToAction || 'Learn More',
+      websiteUrl: adCopy.destinationUrl || '',
+      displayLink: adCopy.displayLink || 'example.com',
+      brandName,
+      profileImage,
+      creativeImage,
+    };
+  }, [adCopy, brief, facebook]);
+
   if (isLoading) {
     return (
       <div className="h-screen bg-canvas flex items-center justify-center">
@@ -93,18 +168,56 @@ const PreviewPageContent: React.FC = () => {
       <Header />
 
       <main className="flex-1 min-h-0 overflow-hidden">
-        <ResizablePanels
-          className="h-full"
-          initialLeftWidth={localApprovalData ? 0 : 30}
-          minLeftWidth={0}
-          maxLeftWidth={70}
-          leftPanel={
-            <ApprovalFormView isPreview={true} />
-          }
-          rightPanel={
-            <AdPreview />
-          }
-        />
+        {showAllViews ? (
+          // Comprehensive All Views mode
+          <div className="h-full flex flex-col overflow-hidden">
+            {/* Header for All Views */}
+            <div className="bg-white border-b border-divider px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-20 font-semibold text-text-primary">Comprehensive Ad Previews</h2>
+                  <p className="text-14 text-text-muted mt-1">
+                    View your ad across all placements and platforms
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAllViews(false)}
+                  className="px-4 py-2 text-14 font-medium text-text-secondary hover:text-text-primary border border-border rounded-md hover:bg-surface-100 transition-colors"
+                >
+                  Back to Preview
+                </button>
+              </div>
+            </div>
+
+            <PreviewTabs
+              selectedPlatforms={selectedPlatforms}
+              onPlatformsChange={setSelectedPlatforms}
+              selectedPlacements={selectedPlacements}
+              onPlacementsChange={setSelectedPlacements}
+            />
+            <div className="flex-1 overflow-y-auto p-6">
+              <PreviewsGrid
+                platforms={selectedPlatforms}
+                placements={selectedPlacements}
+                adData={comprehensiveAdData}
+              />
+            </div>
+          </div>
+        ) : (
+          // Normal preview mode with resizable panels
+          <ResizablePanels
+            className="h-full"
+            initialLeftWidth={localApprovalData ? 0 : 30}
+            minLeftWidth={0}
+            maxLeftWidth={70}
+            leftPanel={
+              <ApprovalFormView isPreview={true} />
+            }
+            rightPanel={
+              <AdPreview onShowAllViews={() => setShowAllViews(true)} />
+            }
+          />
+        )}
       </main>
 
       {/* Approval Drawer - renders as overlay when approval exists */}

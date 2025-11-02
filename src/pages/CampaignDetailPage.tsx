@@ -4,6 +4,7 @@ import { ChevronLeft, Share2, Calendar, Target, Loader2, AlertCircle, Trash2, Up
 import { Button } from '@/components/UI/Button';
 import { MultiSetModal } from '@/components/campaign/MultiSetModal';
 import { parseCreativeSets } from '@/utils/zipParser';
+import { formatDate } from '@/utils/date';
 import { showToast } from '@/stores/toastStore';
 import { API_BASE_URL } from '@/services/api';
 import type { CampaignWithAds } from '@/types/campaign';
@@ -157,15 +158,6 @@ export const CampaignDetailPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-50 flex items-center justify-center">
@@ -196,8 +188,8 @@ export const CampaignDetailPage: React.FC = () => {
     );
   }
 
-  const startDate = formatDate(campaign.start_date);
-  const endDate = formatDate(campaign.end_date);
+  const startDate = campaign.start_date ? formatDate(campaign.start_date) : null;
+  const endDate = campaign.end_date ? formatDate(campaign.end_date) : null;
 
   return (
     <div className="min-h-screen bg-surface-50">

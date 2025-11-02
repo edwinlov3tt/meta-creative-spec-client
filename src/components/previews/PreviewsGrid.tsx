@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import type { PreviewPlatform, PreviewPlacement, PreviewAdData, PlacementPreview } from '@/types/previews';
 import { PLACEMENT_CONFIGS } from '@/types/previews';
-import { MetaFeedPreview } from './MetaFeedPreview';
-import { InstagramFeedPreview } from './InstagramFeedPreview';
+import { FacebookPreview } from '../preview/FacebookPreview';
+import { InstagramPreview } from '../preview/InstagramPreview';
 import { MetaStoryPreview } from './MetaStoryPreview';
 import { MetaReelPreview } from './MetaReelPreview';
 import { MetaMessengerPreview } from './MetaMessengerPreview';
@@ -26,7 +26,7 @@ interface PreviewSection {
 const SECTIONS: PreviewSection[] = [
   {
     title: 'Feeds',
-    placements: ['feed', 'rightcolumn', 'inbox', 'explore'],
+    placements: ['feed', 'rightcolumn', 'inbox', 'explore', 'search'],
   },
   {
     title: 'Stories, Status, Reels',
@@ -35,10 +35,6 @@ const SECTIONS: PreviewSection[] = [
   {
     title: 'In-stream ads for videos and reels',
     placements: ['instream'],
-  },
-  {
-    title: 'Search results',
-    placements: ['search'],
   },
 ];
 
@@ -127,7 +123,7 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     if (config.platform === 'facebook' && config.placement === 'feed') {
       return (
         <div className="flex items-center justify-center bg-[#f7f8fa] rounded-lg p-4 h-full">
-          <MetaFeedPreview device={config.device} adData={adData} format={config.aspectRatio} />
+          <FacebookPreview device={config.device} adType="feed" adFormat={config.aspectRatio} adData={adData} />
         </div>
       );
     }
@@ -136,7 +132,7 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     if (config.platform === 'instagram' && config.placement === 'feed') {
       return (
         <div className="flex items-center justify-center bg-[#f7f8fa] rounded-lg p-4 h-full">
-          <InstagramFeedPreview device={config.device} adData={adData} format={config.aspectRatio} />
+          <InstagramPreview device={config.device} adType="feed" adFormat={config.aspectRatio} adData={adData} />
         </div>
       );
     }
@@ -213,8 +209,8 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     // Facebook Feed
     if (config.platform === 'facebook' && config.placement === 'feed') {
       return (
-        <div key={key} className="flex flex-col relative group" style={{ minWidth: '318px', maxWidth: '450px', flex: '1 1 318px' }}>
-          <div className="mb-3 flex items-start justify-between">
+        <div key={key} className="flex flex-col relative group w-full max-w-[28rem] rounded-lg">
+          <div className="mb-3 flex items-start justify-between p-3 pb-0 rounded-t-lg">
             <div>
               <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
               <p className="text-12 text-text-muted leading-tight">{config.description}</p>
@@ -227,21 +223,15 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
               <Eye className="w-4 h-4" />
             </button>
           </div>
-          <div
-            className="flex items-center justify-center"
-            style={{
-              height: '700px',
-              backgroundColor: '#f7f8fa',
-              borderRadius: '8px',
-              padding: '8px',
-              overflow: 'hidden'
-            }}
-          >
-            <MetaFeedPreview
-              device={config.device}
-              adData={adData}
-              format={config.aspectRatio}
-            />
+          <div className="w-full overflow-hidden bg-[#EAEAEA] p-2 rounded-lg shadow-sm" style={{ aspectRatio: '9/16' }}>
+            <div className="w-full h-full flex items-center justify-center bg-[#f7f8fa] rounded-md">
+              <FacebookPreview
+                device={config.device}
+                adType="feed"
+                adFormat={config.aspectRatio}
+                adData={adData}
+              />
+            </div>
           </div>
         </div>
       );
@@ -250,23 +240,29 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     // Instagram Feed
     if (config.platform === 'instagram' && config.placement === 'feed') {
       return (
-        <div key={key} className="flex flex-col relative group" style={{ minWidth: '318px', maxWidth: '450px', flex: '1 1 318px' }}>
-          {renderPreviewHeader(config)}
-          <div
-            className="flex items-center justify-center"
-            style={{
-              height: '700px',
-              backgroundColor: '#f7f8fa',
-              borderRadius: '8px',
-              padding: '8px',
-              overflow: 'hidden'
-            }}
-          >
-            <InstagramFeedPreview
-              device={config.device}
-              adData={adData}
-              format={config.aspectRatio}
-            />
+        <div key={key} className="flex flex-col relative group w-full max-w-[28rem] rounded-lg">
+          <div className="mb-3 flex items-start justify-between p-3 pb-0 rounded-t-lg">
+            <div>
+              <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
+              <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+            </div>
+            <button
+              onClick={() => handleViewPreview(config)}
+              className="ml-2 p-2 text-primary hover:bg-primary/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="View fullscreen"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="w-full overflow-hidden bg-[#EAEAEA] p-2 rounded-lg shadow-sm" style={{ aspectRatio: '9/16' }}>
+            <div className="w-full h-full flex items-center justify-center bg-[#f7f8fa] rounded-md">
+              <InstagramPreview
+                device={config.device}
+                adType="feed"
+                adFormat={config.aspectRatio}
+                adData={adData}
+              />
+            </div>
           </div>
         </div>
       );
@@ -275,22 +271,24 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     // Facebook Right Column
     if (config.platform === 'facebook' && config.placement === 'rightcolumn') {
       return (
-        <div key={key} className="flex flex-col" style={{ minWidth: '318px', maxWidth: '450px', flex: '1 1 318px' }}>
-          <div className="mb-3">
-            <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
-            <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+        <div key={key} className="flex flex-col relative group w-full max-w-[28rem] rounded-lg">
+          <div className="mb-3 flex items-start justify-between p-3 pb-0 rounded-t-lg">
+            <div>
+              <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
+              <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+            </div>
+            <button
+              onClick={() => handleViewPreview(config)}
+              className="ml-2 p-2 text-primary hover:bg-primary/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="View fullscreen"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
           </div>
-          <div
-            className="flex items-center justify-center"
-            style={{
-              height: '700px',
-              backgroundColor: '#f7f8fa',
-              borderRadius: '8px',
-              padding: '8px',
-              overflow: 'hidden'
-            }}
-          >
-            <MetaRightColumnPreview adData={adData} />
+          <div className="w-full overflow-hidden bg-[#EAEAEA] p-2 rounded-lg shadow-sm" style={{ aspectRatio: '9/16' }}>
+            <div className="w-full h-full flex items-center justify-center bg-[#f7f8fa] rounded-md">
+              <MetaRightColumnPreview adData={adData} />
+            </div>
           </div>
         </div>
       );
@@ -299,16 +297,27 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     // Stories (Facebook & Instagram)
     if (config.placement === 'story') {
       return (
-        <div key={key} className="flex flex-col" style={{ minWidth: '318px', maxWidth: '450px', flex: '1 1 318px' }}>
-          <div className="mb-2">
-            <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
-            <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+        <div key={key} className="flex flex-col relative group w-full max-w-[28rem] rounded-lg">
+          <div className="mb-3 flex items-start justify-between p-3 pb-0 rounded-t-lg">
+            <div>
+              <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
+              <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+            </div>
+            <button
+              onClick={() => handleViewPreview(config)}
+              className="ml-2 p-2 text-primary hover:bg-primary/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="View fullscreen"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
           </div>
-          <div style={{ minHeight: '565px', maxHeight: '800px' }}>
-            <MetaStoryPreview
-              platform={config.platform}
-              adData={adData}
-            />
+          <div className="w-full overflow-hidden bg-[#EAEAEA] p-2 rounded-lg shadow-sm" style={{ aspectRatio: '9/16' }}>
+            <div className="w-full h-full rounded-md">
+              <MetaStoryPreview
+                platform={config.platform}
+                adData={adData}
+              />
+            </div>
           </div>
         </div>
       );
@@ -317,16 +326,27 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     // Reels (Facebook & Instagram)
     if (config.placement === 'reel') {
       return (
-        <div key={key} className="flex flex-col" style={{ minWidth: '318px', maxWidth: '450px', flex: '1 1 318px' }}>
-          <div className="mb-2">
-            <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
-            <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+        <div key={key} className="flex flex-col relative group w-full max-w-[28rem] rounded-lg">
+          <div className="mb-3 flex items-start justify-between p-3 pb-0 rounded-t-lg">
+            <div>
+              <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
+              <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+            </div>
+            <button
+              onClick={() => handleViewPreview(config)}
+              className="ml-2 p-2 text-primary hover:bg-primary/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="View fullscreen"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
           </div>
-          <div style={{ minHeight: '565px', maxHeight: '800px' }}>
-            <MetaReelPreview
-              platform={config.platform}
-              adData={adData}
-            />
+          <div className="w-full overflow-hidden bg-[#EAEAEA] p-2 rounded-lg shadow-sm" style={{ aspectRatio: '9/16' }}>
+            <div className="w-full h-full rounded-md">
+              <MetaReelPreview
+                platform={config.platform}
+                adData={adData}
+              />
+            </div>
           </div>
         </div>
       );
@@ -335,22 +355,24 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     // Instagram Explore
     if (config.platform === 'instagram' && config.placement === 'explore') {
       return (
-        <div key={key} className="flex flex-col" style={{ minWidth: '318px', maxWidth: '450px', flex: '1 1 318px' }}>
-          <div className="mb-3">
-            <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
-            <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+        <div key={key} className="flex flex-col relative group w-full max-w-[28rem] rounded-lg">
+          <div className="mb-3 flex items-start justify-between p-3 pb-0 rounded-t-lg">
+            <div>
+              <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
+              <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+            </div>
+            <button
+              onClick={() => handleViewPreview(config)}
+              className="ml-2 p-2 text-primary hover:bg-primary/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="View fullscreen"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
           </div>
-          <div
-            className="flex items-center justify-center"
-            style={{
-              height: '700px',
-              backgroundColor: '#f7f8fa',
-              borderRadius: '8px',
-              padding: '8px',
-              overflow: 'hidden'
-            }}
-          >
-            <InstagramExplorePreview adData={adData} />
+          <div className="w-full overflow-hidden bg-[#EAEAEA] p-2 rounded-lg shadow-sm" style={{ aspectRatio: '9/16' }}>
+            <div className="w-full h-full flex items-center justify-center bg-[#f7f8fa] rounded-md">
+              <InstagramExplorePreview adData={adData} />
+            </div>
           </div>
         </div>
       );
@@ -359,13 +381,24 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     // In-stream video (Facebook)
     if (config.platform === 'facebook' && config.placement === 'instream') {
       return (
-        <div key={key} className="flex flex-col" style={{ minWidth: '318px', maxWidth: '450px', flex: '1 1 318px' }}>
-          <div className="mb-2">
-            <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
-            <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+        <div key={key} className="flex flex-col relative group w-full max-w-[28rem] rounded-lg">
+          <div className="mb-3 flex items-start justify-between p-3 pb-0 rounded-t-lg">
+            <div>
+              <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
+              <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+            </div>
+            <button
+              onClick={() => handleViewPreview(config)}
+              className="ml-2 p-2 text-primary hover:bg-primary/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="View fullscreen"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
           </div>
-          <div style={{ minHeight: '565px', maxHeight: '800px' }}>
-            <MetaInstreamPreview adData={adData} />
+          <div className="w-full overflow-hidden bg-[#EAEAEA] p-2 rounded-lg shadow-sm" style={{ aspectRatio: '9/16' }}>
+            <div className="w-full h-full flex items-center justify-center rounded-md">
+              <MetaInstreamPreview adData={adData} />
+            </div>
           </div>
         </div>
       );
@@ -374,13 +407,24 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     // Search results (Facebook)
     if (config.platform === 'facebook' && config.placement === 'search') {
       return (
-        <div key={key} className="flex flex-col" style={{ minWidth: '318px', maxWidth: '450px', flex: '1 1 318px' }}>
-          <div className="mb-2">
-            <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
-            <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+        <div key={key} className="flex flex-col relative group w-full max-w-[28rem] rounded-lg">
+          <div className="mb-3 flex items-start justify-between p-3 pb-0 rounded-t-lg">
+            <div>
+              <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
+              <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+            </div>
+            <button
+              onClick={() => handleViewPreview(config)}
+              className="ml-2 p-2 text-primary hover:bg-primary/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="View fullscreen"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
           </div>
-          <div style={{ minHeight: '565px', maxHeight: '800px' }}>
-            <MetaSearchPreview adData={adData} />
+          <div className="w-full overflow-hidden bg-[#EAEAEA] p-2 rounded-lg shadow-sm" style={{ aspectRatio: '9/16' }}>
+            <div className="w-full h-full flex items-center justify-center rounded-md">
+              <MetaSearchPreview adData={adData} />
+            </div>
           </div>
         </div>
       );
@@ -389,22 +433,24 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
     // Messenger Inbox
     if (config.platform === 'messenger' && config.placement === 'inbox') {
       return (
-        <div key={key} className="flex flex-col" style={{ minWidth: '318px', maxWidth: '450px', flex: '1 1 318px' }}>
-          <div className="mb-3">
-            <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
-            <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+        <div key={key} className="flex flex-col relative group w-full max-w-[28rem] rounded-lg">
+          <div className="mb-3 flex items-start justify-between p-3 pb-0 rounded-t-lg">
+            <div>
+              <h3 className="text-14 font-semibold text-text-primary leading-tight">{config.label}</h3>
+              <p className="text-12 text-text-muted leading-tight">{config.description}</p>
+            </div>
+            <button
+              onClick={() => handleViewPreview(config)}
+              className="ml-2 p-2 text-primary hover:bg-primary/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="View fullscreen"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
           </div>
-          <div
-            className="flex items-center justify-center"
-            style={{
-              height: '700px',
-              backgroundColor: '#f7f8fa',
-              borderRadius: '8px',
-              padding: '8px',
-              overflow: 'hidden'
-            }}
-          >
-            <MetaMessengerPreview adData={adData} />
+          <div className="w-full overflow-hidden bg-[#EAEAEA] p-2 rounded-lg shadow-sm" style={{ aspectRatio: '9/16' }}>
+            <div className="w-full h-full flex items-center justify-center bg-[#f7f8fa] rounded-md">
+              <MetaMessengerPreview adData={adData} />
+            </div>
           </div>
         </div>
       );
@@ -451,7 +497,7 @@ export const PreviewsGrid: React.FC<PreviewsGridProps> = ({
               </div>
 
               {/* Section Previews Grid */}
-              <div className="flex flex-wrap gap-6">
+              <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
                 {sectionPreviews.map((config) => renderPreview(config))}
               </div>
             </div>
