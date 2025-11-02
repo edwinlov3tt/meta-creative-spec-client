@@ -141,11 +141,18 @@ export const AdsLibraryPage: React.FC = () => {
                 {isAdmin && <span className="ml-2 text-danger font-medium">(Admin Mode)</span>}
               </p>
             </div>
-            <Link to="/">
-              <Button variant="outline" size="sm">
-                Go to Builder
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link to="/advertisers">
+                <Button variant="outline" size="sm">
+                  Go to Advertisers
+                </Button>
+              </Link>
+              <Link to="/">
+                <Button size="sm">
+                  Go to Builder
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

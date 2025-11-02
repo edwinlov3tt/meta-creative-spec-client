@@ -208,19 +208,34 @@ export const MultiSetModal: React.FC<MultiSetModalProps> = ({
       return;
     }
 
-    if (!selectedCampaignId) {
-      showToast('Please select a campaign', 'warning');
-      return;
-    }
+    // When in campaign context, use campaignContext.campaignId directly
+    const targetCampaignId = campaignContext ? campaignContext.campaignId : selectedCampaignId;
+    const targetCampaignName = campaignContext ? undefined : (selectedCampaignId === 'new' ? newCampaignName : undefined);
 
-    if (selectedCampaignId === 'new' && !newCampaignName.trim()) {
-      showToast('Please enter a campaign name', 'warning');
-      return;
+    if (!campaignContext) {
+      // Only validate selection if NOT in campaign context
+      if (!selectedCampaignId) {
+        showToast('Please select a campaign', 'warning');
+        return;
+      }
+
+      if (selectedCampaignId === 'new' && !newCampaignName.trim()) {
+        showToast('Please enter a campaign name', 'warning');
+        return;
+      }
     }
 
     setIsProcessing(true);
     try {
       const selectedSetsList = sets.filter(set => selectedSets.has(set.name));
+
+      console.log('[MultiSetModal] Creating ads with:', {
+        advertiserIdentifier,
+        campaignId: targetCampaignId,
+        campaignName: targetCampaignName,
+        selectedSetsCount: selectedSetsList.length,
+        isInCampaignContext: !!campaignContext
+      });
 
       // Prepare ad specs
       const ads = selectedSetsList.map(set => ({
@@ -245,14 +260,14 @@ export const MultiSetModal: React.FC<MultiSetModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           advertiserIdentifier,
-          campaignId: selectedCampaignId === 'new' ? undefined : selectedCampaignId,
-          campaignName: selectedCampaignId === 'new' ? newCampaignName : undefined,
+          campaignId: typeof targetCampaignId === 'number' ? targetCampaignId : undefined,
+          campaignName: targetCampaignName,
           ads,
           brief: {
             facebookLink: storeState.brief.facebookLink,
             websiteUrl: storeState.brief.websiteUrl,
             companyOverview: storeState.brief.companyOverview,
-            campaignObjective: storeState.brief.campaignObjective,
+            campaignObjective: storeState.brief.campaignObjective || campaignContext?.campaignName,
             isFlighted: storeState.brief.isFlighted,
             flightStartDate: storeState.brief.flightStartDate,
             flightEndDate: storeState.brief.flightEndDate
@@ -263,19 +278,23 @@ export const MultiSetModal: React.FC<MultiSetModalProps> = ({
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to create ads');
+        throw new Error(result.error || result.message || 'Failed to create ads');
       }
 
       showToast(result.message || `${selectedSetsList.length} ads created successfully`, 'success');
 
-      // Navigate to campaign page
-      if (advertiserIdentifier && result.campaign) {
+      // Navigate to campaign page or close modal
+      if (campaignContext) {
+        // Already on campaign page, just close and let parent refresh
+        onClose();
+      } else if (advertiserIdentifier && result.campaign) {
+        // Navigate to the new campaign
         window.location.href = `/advertiser/${advertiserIdentifier}/campaign/${result.campaign.short_id}`;
+      } else {
+        onClose();
       }
-
-      onClose();
     } catch (error) {
-      console.error('Failed to create campaign ads:', error);
+      console.error('[MultiSetModal] Failed to create campaign ads:', error);
       showToast(error instanceof Error ? error.message : 'Failed to create ads', 'error');
     } finally {
       setIsProcessing(false);

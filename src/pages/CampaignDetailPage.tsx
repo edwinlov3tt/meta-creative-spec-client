@@ -260,7 +260,7 @@ export const CampaignDetailPage: React.FC = () => {
                 ) : (
                   <>
                     <Upload className="w-4 h-4 mr-2" />
-                    Add from Zip
+                    Upload Ads
                   </>
                 )}
               </Button>
