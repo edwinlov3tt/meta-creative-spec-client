@@ -58,6 +58,7 @@ export const CreateCampaignPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [uploadedSets, setUploadedSets] = useState<DetectedCreativeSet[]>([]);
   const [isParsingZip, setIsParsingZip] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Fetch advertiser's ads
   useEffect(() => {
@@ -229,55 +230,171 @@ export const CreateCampaignPage: React.FC = () => {
     );
   };
 
-  const handleZipUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      console.log('[ZIP Upload] No file selected');
+  // Helper: Get image dimensions
+  const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({ width: img.width, height: img.height });
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error(`Failed to load image: ${file.name}`));
+      };
+
+      img.src = url;
+    });
+  };
+
+  // Helper: Classify aspect ratio
+  const classifyAspectRatio = (width: number, height: number): '1:1' | '9:16' | 'other' => {
+    const aspectRatio = width / height;
+
+    // 1:1 aspect ratio (with tolerance)
+    if (Math.abs(aspectRatio - 1) < 0.1) {
+      return '1:1';
+    }
+
+    // 9:16 aspect ratio (0.5625 with tolerance)
+    if (Math.abs(aspectRatio - 0.5625) < 0.1) {
+      return '9:16';
+    }
+
+    return 'other';
+  };
+
+  // Handle file uploads (individual images, multiple files, or ZIP)
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) {
+      console.log('[File Upload] No files selected');
       return;
     }
 
-    console.log('[ZIP Upload] File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
+    console.log('[File Upload] Files selected:', files.length);
+    await processFiles(Array.from(files));
 
-    // Validate file type
-    if (!file.name.endsWith('.zip')) {
-      showToast('Please upload a ZIP file', 'error');
-      return;
-    }
+    // Reset file input
+    event.target.value = '';
+  };
 
+  // Process uploaded files
+  const processFiles = async (files: File[]) => {
     try {
       setIsParsingZip(true);
-      console.log('[ZIP Upload] Starting to parse ZIP file...');
 
-      // Parse zip file for creative sets
-      const sets = await parseCreativeSets(file);
+      // Check if there's a ZIP file
+      const zipFile = files.find(f => f.name.endsWith('.zip'));
 
-      console.log('[ZIP Upload] Parsing complete. Sets found:', sets.length);
-      console.log('[ZIP Upload] Sets:', sets.map(s => ({
-        name: s.name,
-        hasSquare: !!s.square,
-        hasVertical: !!s.vertical
-      })));
+      if (zipFile) {
+        console.log('[File Upload] Processing ZIP file:', zipFile.name);
 
-      if (sets.length === 0) {
-        showToast('No valid creative sets found in ZIP file. Make sure images are organized in folders with 1:1 (square) or 9:16 (vertical) aspect ratios.', 'warning');
-        return;
+        // Parse zip file for creative sets
+        const sets = await parseCreativeSets(zipFile);
+
+        console.log('[File Upload] ZIP parsing complete. Sets found:', sets.length);
+
+        if (sets.length === 0) {
+          showToast('No valid creative sets found in ZIP file. Make sure images are organized in folders with 1:1 (square) or 9:16 (vertical) aspect ratios.', 'warning');
+          return;
+        }
+
+        setUploadedSets(prev => [...prev, ...sets]);
+        showToast(`${sets.length} creative set${sets.length > 1 ? 's' : ''} added from ZIP`, 'success');
+      } else {
+        // Process individual image files
+        console.log('[File Upload] Processing individual image files:', files.length);
+
+        const imageFiles = files.filter(f =>
+          /\.(png|jpe?g|webp)$/i.test(f.name)
+        );
+
+        if (imageFiles.length === 0) {
+          showToast('No valid image files found. Please upload PNG, JPG, or WebP images.', 'warning');
+          return;
+        }
+
+        // Process each image and detect aspect ratio
+        const newSets: DetectedCreativeSet[] = [];
+
+        for (const file of imageFiles) {
+          try {
+            const { width, height } = await getImageDimensions(file);
+            const aspectRatio = classifyAspectRatio(width, height);
+
+            if (aspectRatio === 'other') {
+              console.warn(`[File Upload] Skipping ${file.name} - unsupported aspect ratio`);
+              continue;
+            }
+
+            // Create a set for this image
+            const setName = file.name.replace(/\.[^/.]+$/, ''); // Remove file extension
+            const newSet: DetectedCreativeSet = { name: setName };
+
+            if (aspectRatio === '1:1') {
+              newSet.square = file;
+            } else if (aspectRatio === '9:16') {
+              newSet.vertical = file;
+            }
+
+            newSets.push(newSet);
+          } catch (error) {
+            console.error(`[File Upload] Failed to process ${file.name}:`, error);
+          }
+        }
+
+        if (newSets.length === 0) {
+          showToast('No valid creative sets found. Images must be 1:1 (square) or 9:16 (vertical) aspect ratio.', 'warning');
+          return;
+        }
+
+        setUploadedSets(prev => [...prev, ...newSets]);
+        showToast(`${newSets.length} creative${newSets.length > 1 ? 's' : ''} added`, 'success');
       }
-
-      setUploadedSets(sets);
-      showToast(`${sets.length} creative sets detected`, 'success');
     } catch (error) {
-      console.error('[CreateCampaignPage] Failed to parse zip file:', error);
+      console.error('[File Upload] Failed to process files:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      showToast(`Failed to parse ZIP file: ${errorMessage}`, 'error');
+      showToast(`Failed to process files: ${errorMessage}`, 'error');
     } finally {
       setIsParsingZip(false);
-      // Reset file input
-      event.target.value = '';
     }
   };
 
   const removeUploadedSet = (setName: string) => {
     setUploadedSets(prev => prev.filter(set => set.name !== setName));
+  };
+
+  // Drag & drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const { files } = e.dataTransfer;
+    if (files && files.length > 0) {
+      await processFiles(Array.from(files));
+    }
   };
 
   if (loading) {
@@ -390,27 +507,38 @@ export const CreateCampaignPage: React.FC = () => {
 
           {/* Upload Ad Sets (Optional) */}
           <div className="bg-white rounded-lg border border-border p-6">
-            <h2 className="text-18 font-semibold text-text-primary mb-2">Upload Ad Sets (Optional)</h2>
+            <h2 className="text-18 font-semibold text-text-primary mb-2">Upload Creatives (Optional)</h2>
             <p className="text-14 text-text-secondary mb-4">
-              Upload a ZIP file containing multiple ad sets to create draft ads
+              Upload individual images, multiple files, or a ZIP file to create draft ads
             </p>
 
             {/* Upload Button/Zone */}
             <div className="space-y-4">
-              <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-border rounded-lg p-8 cursor-pointer hover:border-meta-blue hover:bg-blue-50 transition-all">
+              <label
+                className={`flex flex-col items-center justify-center w-full border-2 border-dashed rounded-lg p-8 cursor-pointer transition-all ${
+                  isDragging
+                    ? 'border-meta-blue bg-blue-50'
+                    : 'border-border hover:border-meta-blue hover:bg-blue-50'
+                }`}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <input
                   type="file"
-                  accept=".zip"
-                  onChange={handleZipUpload}
+                  accept=".zip,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                  multiple
+                  onChange={handleFileUpload}
                   disabled={isParsingZip}
                   className="hidden"
                 />
-                <Upload className={`w-10 h-10 mb-3 ${isParsingZip ? 'text-meta-blue' : 'text-text-muted'}`} />
+                <Upload className={`w-10 h-10 mb-3 ${isParsingZip || isDragging ? 'text-meta-blue' : 'text-text-muted'}`} />
                 <p className="text-14 font-medium text-text-primary mb-1">
-                  {isParsingZip ? 'Processing ZIP file...' : 'Click to upload ZIP file'}
+                  {isParsingZip ? 'Processing files...' : isDragging ? 'Drop files here' : 'Click to upload or drag & drop'}
                 </p>
                 <p className="text-12 text-text-muted">
-                  Automatically detects creative sets organized in folders
+                  Supports individual images (1:1 or 9:16), multiple files, or ZIP files with organized folders
                 </p>
               </label>
 
