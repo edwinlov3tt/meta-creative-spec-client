@@ -231,7 +231,12 @@ export const CreateCampaignPage: React.FC = () => {
 
   const handleZipUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('[ZIP Upload] No file selected');
+      return;
+    }
+
+    console.log('[ZIP Upload] File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
 
     // Validate file type
     if (!file.name.endsWith('.zip')) {
@@ -241,12 +246,20 @@ export const CreateCampaignPage: React.FC = () => {
 
     try {
       setIsParsingZip(true);
+      console.log('[ZIP Upload] Starting to parse ZIP file...');
 
       // Parse zip file for creative sets
       const sets = await parseCreativeSets(file);
 
+      console.log('[ZIP Upload] Parsing complete. Sets found:', sets.length);
+      console.log('[ZIP Upload] Sets:', sets.map(s => ({
+        name: s.name,
+        hasSquare: !!s.square,
+        hasVertical: !!s.vertical
+      })));
+
       if (sets.length === 0) {
-        showToast('No valid creative sets found in ZIP file', 'warning');
+        showToast('No valid creative sets found in ZIP file. Make sure images are organized in folders with 1:1 (square) or 9:16 (vertical) aspect ratios.', 'warning');
         return;
       }
 
@@ -254,7 +267,8 @@ export const CreateCampaignPage: React.FC = () => {
       showToast(`${sets.length} creative sets detected`, 'success');
     } catch (error) {
       console.error('[CreateCampaignPage] Failed to parse zip file:', error);
-      showToast('Failed to parse ZIP file', 'error');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      showToast(`Failed to parse ZIP file: ${errorMessage}`, 'error');
     } finally {
       setIsParsingZip(false);
       // Reset file input
