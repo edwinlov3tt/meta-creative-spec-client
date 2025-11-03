@@ -7,6 +7,7 @@ import { ResizablePanels, ResizablePanelsRef } from '@/components/UI/ResizablePa
 import { ToastContainer } from '@/components/UI/ToastContainer';
 import { ApprovalDrawer } from '@/components/approval/ApprovalDrawer';
 import { EmailVerificationModal } from '@/components/approval/EmailVerificationModal';
+import { ApprovalActivityListener } from '@/components/approval/ApprovalActivityListener';
 import { ApprovalProvider, useApproval } from '@/contexts/ApprovalContext';
 import { useCreativeStore } from '@/stores/creativeStore';
 import { Spinner } from '@/components/UI/Spinner';
@@ -188,6 +189,14 @@ const ApprovalPageContent: React.FC = () => {
         onReject={handleReject}
         defaultOpen={true}
       />
+
+      {/* Real-time activity listener for toast notifications */}
+      {approvalData && (
+        <ApprovalActivityListener
+          approvalRequestId={approvalData.id}
+          currentUserEmail={userEmail}
+        />
+      )}
 
       <ToastContainer />
     </div>

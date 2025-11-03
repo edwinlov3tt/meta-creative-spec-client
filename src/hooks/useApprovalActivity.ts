@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '@/services/api';
 
 interface ApprovalActivity {
   id: number;
@@ -73,23 +74,14 @@ export function useApprovalActivity({
   };
 
   useEffect(() => {
-    // ⚠️ SOCKET.IO TEMPORARILY DISABLED
-    // Real-time activity updates disabled during backend migration
-    // To re-enable: Remove this block and deploy Socket.IO server
-    console.log('[useApprovalActivity] Socket.IO disabled - using polling only');
-
     if (!enabled) {
       setIsLoading(false);
       return;
     }
 
-    // Fetch initial activities only (no socket connection)
+    // Fetch initial activities
     void fetchActivities();
 
-    // Disable Socket.IO real-time updates
-    return;
-
-    // eslint-disable-next-line no-unreachable
     // Create socket connection
     const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
@@ -122,26 +114,12 @@ export function useApprovalActivity({
       console.error('[Activity] Connection error:', error);
     });
 
-    // Listen for new activity events
-    socket.on('activity:event', (event: ActivityEvent) => {
-      console.log('[Activity] Received new activity event:', event.eventType);
-
-      // Create a new activity record from the event
-      const newActivity: ApprovalActivity = {
-        id: Date.now(), // Temporary ID until we fetch full data
-        approval_request_id: Number(event.approvalRequestId),
-        participant_id: event.participantId || null,
-        event_type: event.eventType,
-        user_email: event.userEmail || null,
-        user_name: event.userName || null,
-        ip_address: null,
-        user_agent: null,
-        metadata: event.metadata || null,
-        created_at: new Date(event.timestamp).toISOString(),
-      };
+    // Listen for new activity events (from backend broadcastActivity)
+    socket.on('activity:new', (data: { activity: ApprovalActivity; timestamp: string }) => {
+      console.log('[Activity] Received new activity event:', data.activity.event_type);
 
       // Add to the beginning of the list (most recent first)
-      setActivities((prev) => [newActivity, ...prev]);
+      setActivities((prev) => [data.activity, ...prev]);
     });
 
     // Listen for comment events
@@ -174,31 +152,19 @@ export function useApprovalActivity({
       setActivities((prev) => [newActivity, ...prev]);
     });
 
-    // Listen for approval decisions
-    socket.on('approval:decision', (event: {
-      approvalRequestId: string | number;
-      status: string;
-      userEmail: string;
-      userName?: string;
-      comments?: string;
-      timestamp: Date;
+    // Listen for approval decisions (from backend broadcastApprovalDecision)
+    socket.on('approval:submitted', (data: {
+      status: 'approved' | 'rejected';
+      participant: { id: number; email: string; name: string };
+      tierAdvanced: boolean;
+      newTier?: number;
+      approvalComplete: boolean;
+      timestamp: string;
     }) => {
-      console.log('[Activity] Received approval decision:', event.status);
+      console.log('[Activity] Received approval decision:', data.status);
 
-      const newActivity: ApprovalActivity = {
-        id: Date.now(),
-        approval_request_id: Number(event.approvalRequestId),
-        participant_id: null,
-        event_type: event.status,
-        user_email: event.userEmail,
-        user_name: event.userName || null,
-        ip_address: null,
-        user_agent: null,
-        metadata: event.comments ? { comments: event.comments } : null,
-        created_at: new Date(event.timestamp).toISOString(),
-      };
-
-      setActivities((prev) => [newActivity, ...prev]);
+      // Activity is already added via activity:new event, but we can trigger a refresh if needed
+      // Or use this event to show a toast notification (handled by ApprovalActivityListener)
     });
 
     // Listen for errors
