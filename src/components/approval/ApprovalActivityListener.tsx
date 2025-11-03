@@ -8,15 +8,19 @@ interface ApprovalActivityListenerProps {
 }
 
 // Get Socket.io server URL
+// IMPORTANT: In production, connect directly to Railway (Vercel cannot proxy WebSockets)
 const getSocketUrl = () => {
+  // If explicitly set via environment variable, use it
   if (import.meta.env.VITE_SOCKET_URL) {
     return import.meta.env.VITE_SOCKET_URL;
   }
 
+  // In production, connect directly to Railway backend (WebSocket connections can't be proxied by Vercel)
   if (import.meta.env.PROD) {
-    return window.location.origin;
+    return 'https://meta-creative-spec-production.up.railway.app';
   }
 
+  // Development: use API server URL or default to localhost:3001
   return import.meta.env.VITE_API_URL || 'http://localhost:3001';
 };
 
@@ -41,10 +45,18 @@ export const ApprovalActivityListener: React.FC<ApprovalActivityListenerProps> =
   useEffect(() => {
     // Create socket connection
     const socket = io(SOCKET_URL, {
+      // Try websocket first, fallback to polling if websocket fails
       transports: ['websocket', 'polling'],
+      // Connection options
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 10,
+      timeout: 20000,
+      // Production: connect to Railway directly (skip proxy)
+      path: '/socket.io',
+      // Enable credentials for CORS
+      withCredentials: true,
     });
 
     socketRef.current = socket;
