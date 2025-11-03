@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Layout/Header';
 import { ApprovalFormView } from '@/components/ApprovalFormView';
 import { AdPreview } from '@/components/AdPreview';
 import { ResizablePanels, ResizablePanelsRef } from '@/components/UI/ResizablePanels';
 import { ToastContainer } from '@/components/UI/ToastContainer';
 import { ApprovalDrawer } from '@/components/approval/ApprovalDrawer';
+import { EmailVerificationModal } from '@/components/approval/EmailVerificationModal';
 import { ApprovalProvider, useApproval } from '@/contexts/ApprovalContext';
 import { useCreativeStore } from '@/stores/creativeStore';
 import { Spinner } from '@/components/UI/Spinner';
@@ -14,27 +15,32 @@ import type { ApprovalRequestWithDetails } from '@/types/approval';
 
 const ApprovalPageContent: React.FC = () => {
   const { advertiser, adId } = useParams<{ advertiser: string; adId: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const loadPreviewData = useCreativeStore(state => state.loadPreviewData);
   const isPreviewMode = useCreativeStore(state => state.isPreviewMode);
   const [isLoading, setIsLoading] = React.useState(true);
   const [approvalData, setApprovalData] = React.useState<ApprovalRequestWithDetails | null>(null);
+  const [showEmailVerification, setShowEmailVerification] = React.useState(false);
+  const [isVerifying, setIsVerifying] = React.useState(false);
   const resizablePanelsRef = useRef<ResizablePanelsRef>(null);
 
   const { setApprovalData: setContextApprovalData, setUserEmail } = useApproval();
   const userEmail = searchParams.get('email') || undefined;
 
-  const loadApprovalData = async () => {
+  const loadApprovalData = async (email?: string) => {
     if (!adId) return;
+
+    const emailToUse = email || userEmail;
 
     try {
       // Set user email FIRST before loading approval data
-      if (userEmail) {
-        setUserEmail(userEmail);
+      if (emailToUse) {
+        setUserEmail(emailToUse);
       }
 
-      const url = userEmail
-        ? `${API_BASE_URL}/api/approval/ad/${adId}?email=${encodeURIComponent(userEmail)}`
+      const url = emailToUse
+        ? `${API_BASE_URL}/api/approval/ad/${adId}?email=${encodeURIComponent(emailToUse)}`
         : `${API_BASE_URL}/api/approval/ad/${adId}`;
 
       const response = await fetch(url);
@@ -44,7 +50,7 @@ const ApprovalPageContent: React.FC = () => {
         const approvalRequestData = result.data.approval_request;
         console.log('[ApprovalPage] Loaded approval data:', approvalRequestData);
         console.log('[ApprovalPage] Current participant status:',
-          approvalRequestData.participants.find((p: any) => p.email === userEmail)?.status
+          approvalRequestData.participants.find((p: any) => p.email === emailToUse)?.status
         );
         setApprovalData(approvalRequestData);
         setContextApprovalData(approvalRequestData);
@@ -54,9 +60,56 @@ const ApprovalPageContent: React.FC = () => {
     }
   };
 
+  const handleEmailVerification = async (email: string): Promise<boolean> => {
+    setIsVerifying(true);
+
+    try {
+      // Load approval data with the provided email to check if they're a participant
+      const url = `${API_BASE_URL}/api/approval/ad/${adId}?email=${encodeURIComponent(email)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const approvalRequestData = result.data.approval_request;
+
+        // Check if the email is in the participants list
+        const participant = approvalRequestData.participants.find(
+          (p: any) => p.email.toLowerCase() === email.toLowerCase()
+        );
+
+        if (participant) {
+          // Valid participant - add email to URL and load data
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.set('email', email);
+          setSearchParams(newSearchParams, { replace: true });
+
+          // Close the modal
+          setShowEmailVerification(false);
+
+          return true;
+        }
+      }
+
+      // Email not found in participants list
+      return false;
+    } catch (error) {
+      console.error('Email verification error:', error);
+      return false;
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   useEffect(() => {
     if (!advertiser || !adId) {
       setIsLoading(false);
+      return;
+    }
+
+    // If no email in URL, show verification modal
+    if (!userEmail) {
+      setIsLoading(false);
+      setShowEmailVerification(true);
       return;
     }
 
@@ -105,6 +158,14 @@ const ApprovalPageContent: React.FC = () => {
 
   return (
     <div className="h-screen bg-canvas flex flex-col overflow-hidden">
+      {/* Email Verification Modal - shows when no email in URL */}
+      {showEmailVerification && (
+        <EmailVerificationModal
+          onVerify={handleEmailVerification}
+          isVerifying={isVerifying}
+        />
+      )}
+
       <Header />
 
       <main className="flex-1 min-h-0 overflow-hidden">
