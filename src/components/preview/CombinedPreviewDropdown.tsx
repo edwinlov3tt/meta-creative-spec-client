@@ -101,11 +101,11 @@ export const CombinedPreviewDropdown: React.FC<CombinedPreviewDropdownProps> = (
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative flex-1" ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-border rounded-md text-14 font-medium text-text-primary hover:bg-surface-50 transition-colors"
+        className="w-full inline-flex items-center justify-between gap-2 px-3 py-2 bg-white border border-border rounded-md text-14 font-medium text-text-primary hover:bg-surface-50 transition-colors"
       >
         <span className="flex items-center gap-2">
           {getPlatformIcon(selectedPreview.platform)}
@@ -115,7 +115,7 @@ export const CombinedPreviewDropdown: React.FC<CombinedPreviewDropdownProps> = (
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
           <div className="py-2">
             {SECTIONS.map((section) => {
               const sectionPreviews = getPreviewsForSection(section.placements);
