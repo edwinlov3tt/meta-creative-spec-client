@@ -10,7 +10,7 @@ import { ApprovalDrawer } from '@/components/approval/ApprovalDrawer';
 import { ApprovalProvider, useApproval } from '@/contexts/ApprovalContext';
 import { useCreativeStore } from '@/stores/creativeStore';
 import { Spinner } from '@/components/UI/Spinner';
-import { API_BASE_URL } from '@/services/api';
+import { API_BASE_URL, getProxiedR2Url } from '@/services/api';
 import type { ApprovalRequestWithDetails } from '@/types/approval';
 import { PreviewTabs } from '@/components/previews/PreviewTabs';
 import { PreviewsGrid } from '@/components/previews/PreviewsGrid';
@@ -80,7 +80,7 @@ const PreviewPageContent: React.FC = () => {
     const pageData = facebook.pageData || {};
     const brandName = pageData.name || adCopy.adName || 'Your Brand';
 
-    // Get profile image
+    // Get profile image with fallbacks
     let profileImage = '';
     if (pageData.profile_picture) {
       profileImage = pageData.profile_picture;
@@ -94,22 +94,50 @@ const PreviewPageContent: React.FC = () => {
       profileImage = pageData.instagram_details.result.profile_pic_url;
     }
 
-    // Get creative image - prefer square, then vertical, then original
+    // Fallback to UI Avatars if no profile image
+    if (!profileImage) {
+      profileImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(brandName)}&background=1877f2&color=fff&size=256`;
+    }
+
+    // Get creative image with comprehensive fallback chain
     const creativeFiles = brief.creativeFiles || {};
     let creativeImage = '';
+    let creativeImageFallback = '';
 
+    // Try URLs first (will be proxied for R2)
     if (creativeFiles.square?.url) {
       creativeImage = creativeFiles.square.url;
+      // Store base64 as fallback
+      if (creativeFiles.square?.data) {
+        creativeImageFallback = `data:${creativeFiles.square.type};base64,${creativeFiles.square.data}`;
+      }
     } else if (creativeFiles.vertical?.url) {
       creativeImage = creativeFiles.vertical.url;
+      if (creativeFiles.vertical?.data) {
+        creativeImageFallback = `data:${creativeFiles.vertical.type};base64,${creativeFiles.vertical.data}`;
+      }
     } else if (brief.creativeFile?.url) {
       creativeImage = brief.creativeFile.url;
+      if (brief.creativeFile?.data) {
+        creativeImageFallback = `data:${brief.creativeFile.type};base64,${brief.creativeFile.data}`;
+      }
     } else if (creativeFiles.square?.data) {
+      // No URL, use base64 directly
       creativeImage = `data:${creativeFiles.square.type};base64,${creativeFiles.square.data}`;
     } else if (creativeFiles.vertical?.data) {
       creativeImage = `data:${creativeFiles.vertical.type};base64,${creativeFiles.vertical.data}`;
     } else if (brief.creativeFile?.data) {
       creativeImage = `data:${brief.creativeFile.type};base64,${brief.creativeFile.data}`;
+    }
+
+    // Apply R2 proxy transformation if needed
+    if (creativeImage && !creativeImage.startsWith('data:')) {
+      creativeImage = getProxiedR2Url(creativeImage);
+    }
+
+    // Store fallback in a way components can access it
+    if (creativeImageFallback && !window.__creativeImageFallback) {
+      (window as any).__creativeImageFallback = creativeImageFallback;
     }
 
     // Apply "See more" logic if character limit removed

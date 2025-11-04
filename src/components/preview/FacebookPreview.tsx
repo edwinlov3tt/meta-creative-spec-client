@@ -33,16 +33,24 @@ export const FacebookPreview: React.FC<FacebookPreviewProps> = ({
   if (adType === 'story' || adType === 'reel') {
     return (
       <div className="bg-black rounded-lg aspect-story relative overflow-hidden">
-        {adData.creativeImage && (
+        {adData.creativeImage ? (
           <img
             src={adData.creativeImage}
             alt="Ad creative"
             className="absolute inset-0 w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              // Try fallback to base64 if available
+              const fallback = (window as any).__creativeImageFallback;
+              if (fallback && e.currentTarget.src !== fallback) {
+                console.log('[FacebookPreview Story] Primary image failed, trying base64 fallback');
+                e.currentTarget.src = fallback;
+              } else {
+                console.error('[FacebookPreview Story] Creative image failed to load:', e.currentTarget.src);
+                e.currentTarget.style.display = 'none';
+              }
             }}
           />
-        )}
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60">
           <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
             <p className="text-sm mb-4">{adData.primaryText}</p>
@@ -60,7 +68,8 @@ export const FacebookPreview: React.FC<FacebookPreviewProps> = ({
           <div className="absolute inset-0 flex items-center justify-center text-white/60">
             <div className="text-center">
               <div className="w-24 h-24 bg-white/20 rounded-lg mx-auto mb-2" />
-              <p className="text-sm">Story/Reel Preview</p>
+              <p className="text-sm font-medium">Story/Reel Preview</p>
+              <p className="text-xs text-red-400 mt-2">Image not available</p>
             </div>
           </div>
         )}
@@ -133,18 +142,36 @@ export const FacebookPreview: React.FC<FacebookPreviewProps> = ({
             alt="Ad creative"
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              // Try fallback to base64 if available
+              const fallback = (window as any).__creativeImageFallback;
+              if (fallback && e.currentTarget.src !== fallback) {
+                console.log('[FacebookPreview] Primary image failed, trying base64 fallback');
+                e.currentTarget.src = fallback;
+              } else {
+                // No fallback available, hide image
+                console.error('[FacebookPreview] Creative image failed to load:', e.currentTarget.src);
+                e.currentTarget.style.display = 'none';
+                // Show placeholder
+                const placeholder = e.currentTarget.parentElement?.querySelector('.image-placeholder');
+                if (placeholder) {
+                  (placeholder as HTMLElement).style.display = 'block';
+                }
+              }
             }}
           />
-        ) : (
-          <div className="text-center">
+        ) : null}
+        <div className={`image-placeholder text-center absolute inset-0 flex items-center justify-center ${adData.creativeImage ? 'hidden' : ''}`}>
+          <div>
             <div className="w-16 h-16 bg-surface-300 rounded-lg mx-auto mb-2" />
-            <p className="text-sm">Ad Creative</p>
-            <p className="text-xs uppercase tracking-wide text-text-muted">
+            <p className="text-sm font-medium">Ad Creative</p>
+            <p className="text-xs uppercase tracking-wide text-text-muted mt-1">
               {adFormat === '1:1' ? '1080×1080' : adFormat} format
             </p>
+            {!adData.creativeImage && (
+              <p className="text-xs text-red-500 mt-2">Image not available</p>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       <div className="border-t border-divider bg-surface-50">
