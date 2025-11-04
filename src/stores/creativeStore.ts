@@ -1408,7 +1408,18 @@ export const useCreativeStore = create<CreativeStore>()(
 
         loadPreviewData: async (advertiser, adId) => {
           try {
-            const response = await fetch(`${CREATIVE_API_BASE}/api/preview/${advertiser}?adId=${adId}`);
+            // Add cache-busting to force fresh data from server
+            const timestamp = Date.now();
+            const response = await fetch(
+              `${CREATIVE_API_BASE}/api/preview/${advertiser}?adId=${adId}&_t=${timestamp}`,
+              {
+                cache: 'no-store', // Prevent browser caching
+                headers: {
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache'
+                }
+              }
+            );
             const result = await response.json();
 
             if (!result.success || !result.data) {
@@ -1419,6 +1430,7 @@ export const useCreativeStore = create<CreativeStore>()(
             const { ad, advertiser: advertiserInfo } = result.data;
 
             // Load the data into the store
+            // Note: This will overwrite any localStorage-hydrated data with fresh server data
             set({
               brief: ad.brief,
               adCopy: ad.adCopy,
