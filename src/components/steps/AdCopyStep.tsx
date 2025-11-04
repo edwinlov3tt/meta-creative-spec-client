@@ -41,6 +41,7 @@ export const AdCopyStep: React.FC<AdCopyStepProps> = ({ fullPage = false, isPrev
   const updateBriefField = useCreativeStore(state => state.updateBriefField);
   const utm = useCreativeStore(state => state.brief.utm);
   const updateUTM = useCreativeStore(state => state.updateUTM);
+  const clearUTM = useCreativeStore(state => state.clearUTM);
   const getTrackedUrl = useCreativeStore(state => state.getTrackedUrl);
   const applyTrackedUrl = useCreativeStore(state => state.applyTrackedUrl);
   const lastAutoContent = useRef<string>('');
@@ -257,36 +258,59 @@ export const AdCopyStep: React.FC<AdCopyStepProps> = ({ fullPage = false, isPrev
           ) : (
             <>
               <div className="space-y-2">
-                <span className="text-12 text-text-muted font-medium">UTM Parameters</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-12 text-text-muted font-medium">UTM Parameters</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearUTM}
+                    className="text-11 h-auto py-1"
+                  >
+                    Clear All
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={utm.campaign}
-                    onChange={(e) => updateUTM({ campaign: e.target.value })}
-                    placeholder="utm_campaign"
-                    className="form-input"
-                  />
-                  <input
-                    type="text"
-                    value={utm.medium}
-                    onChange={(e) => updateUTM({ medium: e.target.value })}
-                    placeholder="utm_medium"
-                    className="form-input"
-                  />
-                  <input
-                    type="text"
-                    value={utm.source}
-                    onChange={(e) => updateUTM({ source: e.target.value })}
-                    placeholder="utm_source"
-                    className="form-input"
-                  />
-                  <input
-                    type="text"
-                    value={utm.content}
-                    onChange={(e) => updateUTM({ content: e.target.value })}
-                    placeholder="utm_content (optional)"
-                    className="form-input"
-                  />
+                  <div className="space-y-1">
+                    <label className="text-11 text-text-muted">Campaign</label>
+                    <input
+                      type="text"
+                      value={utm.campaign}
+                      onChange={(e) => updateUTM({ campaign: e.target.value })}
+                      placeholder="utm_campaign"
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-11 text-text-muted">Medium</label>
+                    <input
+                      type="text"
+                      value={utm.medium}
+                      onChange={(e) => updateUTM({ medium: e.target.value })}
+                      placeholder="utm_medium"
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-11 text-text-muted">Source</label>
+                    <input
+                      type="text"
+                      value={utm.source}
+                      onChange={(e) => updateUTM({ source: e.target.value })}
+                      placeholder="utm_source"
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-11 text-text-muted">Content <span className="text-text-muted/70">(optional)</span></label>
+                    <input
+                      type="text"
+                      value={utm.content}
+                      onChange={(e) => updateUTM({ content: e.target.value })}
+                      placeholder="utm_content"
+                      className="form-input"
+                    />
+                  </div>
                 </div>
                 <div className="bg-surface-50 border border-border rounded-card px-4 py-3 text-12 text-text-muted">
               <div className="flex items-center gap-2 text-text-primary font-semibold mb-2">
@@ -481,36 +505,59 @@ export const AdCopyStep: React.FC<AdCopyStepProps> = ({ fullPage = false, isPrev
           </div>
 
           <div className="space-y-2">
-            <span className="text-12 text-text-muted font-medium">UTM Parameters</span>
+            <div className="flex items-center justify-between">
+              <span className="text-12 text-text-muted font-medium">UTM Parameters</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearUTM}
+                className="text-11 h-auto py-1"
+              >
+                Clear All
+              </Button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <input
-                type="text"
-                value={utm.campaign}
-                onChange={(e) => updateUTM({ campaign: e.target.value })}
-                placeholder="utm_campaign"
-                className="form-input"
-              />
-              <input
-                type="text"
-                value={utm.medium}
-                onChange={(e) => updateUTM({ medium: e.target.value })}
-                placeholder="utm_medium"
-                className="form-input"
-              />
-              <input
-                type="text"
-                value={utm.source}
-                onChange={(e) => updateUTM({ source: e.target.value })}
-                placeholder="utm_source"
-                className="form-input"
-              />
-              <input
-                type="text"
-                value={utm.content}
-                onChange={(e) => updateUTM({ content: e.target.value })}
-                placeholder="utm_content (optional)"
-                className="form-input"
-              />
+              <div className="space-y-1">
+                <label className="text-11 text-text-muted">Campaign</label>
+                <input
+                  type="text"
+                  value={utm.campaign}
+                  onChange={(e) => updateUTM({ campaign: e.target.value })}
+                  placeholder="utm_campaign"
+                  className="form-input"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-11 text-text-muted">Medium</label>
+                <input
+                  type="text"
+                  value={utm.medium}
+                  onChange={(e) => updateUTM({ medium: e.target.value })}
+                  placeholder="utm_medium"
+                  className="form-input"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-11 text-text-muted">Source</label>
+                <input
+                  type="text"
+                  value={utm.source}
+                  onChange={(e) => updateUTM({ source: e.target.value })}
+                  placeholder="utm_source"
+                  className="form-input"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-11 text-text-muted">Content <span className="text-text-muted/70">(optional)</span></label>
+                <input
+                  type="text"
+                  value={utm.content}
+                  onChange={(e) => updateUTM({ content: e.target.value })}
+                  placeholder="utm_content"
+                  className="form-input"
+                />
+              </div>
             </div>
             <div className="bg-surface-50 border border-border rounded-card px-4 py-3 text-12 text-text-muted">
               <div className="flex items-center gap-2 text-text-primary font-semibold mb-2">

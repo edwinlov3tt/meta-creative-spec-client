@@ -252,14 +252,38 @@ export const useCreativeStore = create<CreativeStore>()(
             isDirty: true
           })),
 
-        updateUTM: (updates) =>
+        updateUTM: (updates) => {
           set(state => ({
             brief: {
               ...state.brief,
               utm: { ...state.brief.utm, ...updates }
             },
             isDirty: true
-          })),
+          }));
+          // Auto-apply UTM parameters to destination URL
+          setTimeout(() => get().applyTrackedUrl(), 0);
+        },
+
+        clearUTM: () => {
+          set(state => ({
+            brief: {
+              ...state.brief,
+              utm: { campaign: '', medium: '', source: '', content: '' }
+            },
+            isDirty: true
+          }));
+          // Reset destination URL to base website URL
+          const baseUrl = get().brief.websiteUrl;
+          if (baseUrl) {
+            set(state => ({
+              adCopy: {
+                ...state.adCopy,
+                destinationUrl: baseUrl
+              },
+              isDirty: true
+            }));
+          }
+        },
 
         setCreativeFile: (file) =>
           set(state => ({
