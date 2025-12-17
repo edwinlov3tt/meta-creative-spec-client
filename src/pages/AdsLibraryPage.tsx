@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Loader2, AlertCircle, Trash2, Eye, Calendar, Facebook, Instagram } from 'lucide-react';
 import { showToast } from '@/stores/toastStore';
@@ -19,7 +19,8 @@ interface Ad {
     adFormat: string;
   };
   creative_file: {
-    data: string;
+    url?: string;
+    data?: string;
     type: string;
     name: string;
   } | null;
@@ -27,46 +28,192 @@ interface Ad {
   headline: string;
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
+// Memoized ad card component to prevent unnecessary re-renders
+const AdCard = memo(({
+  ad,
+  isAdmin,
+  deletingId,
+  onDelete
+}: {
+  ad: Ad;
+  isAdmin: boolean;
+  deletingId: number | null;
+  onDelete: (id: number, name: string) => void;
+}) => {
+  // Get image source - prefer URL over base64
+  const getImageSrc = () => {
+    if (!ad.creative_file) return null;
+    if (ad.creative_file.url) return ad.creative_file.url;
+    if (ad.creative_file.data) return `data:${ad.creative_file.type};base64,${ad.creative_file.data}`;
+    return null;
+  };
+
+  const imageSrc = getImageSrc();
+
+  return (
+    <div className="card p-4 hover:shadow-lg transition-shadow">
+      {/* Creative Preview */}
+      <div className="aspect-square bg-surface-100 rounded-lg mb-4 overflow-hidden relative">
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={ad.ad_name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-text-muted text-14">No Image</span>
+          </div>
+        )}
+        {/* Platform Badge */}
+        <div className="absolute top-2 right-2">
+          {ad.preview_settings?.platform === 'facebook' ? (
+            <div className="w-8 h-8 bg-meta-blue rounded-full flex items-center justify-center">
+              <Facebook className="w-4 h-4 text-white" />
+            </div>
+          ) : (
+            <div className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center">
+              <Instagram className="w-4 h-4 text-white" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Ad Info */}
+      <div className="space-y-2">
+        <h3 className="text-16 font-semibold text-text-primary line-clamp-1">
+          {ad.ad_name}
+        </h3>
+        <p className="text-14 text-text-secondary line-clamp-2">
+          {ad.primary_text}
+        </p>
+        <Link
+          to={`/advertiser/${ad.advertiser_username}`}
+          className="text-12 text-meta-blue hover:underline block"
+        >
+          {ad.advertiser_name}
+        </Link>
+        <div className="flex items-center gap-1 text-12 text-text-muted">
+          <Calendar className="w-3 h-3" />
+          {new Date(ad.created_at).toLocaleDateString()}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="mt-4 flex items-center gap-2">
+        <Link
+          to={`/preview/${ad.advertiser_username}/ad/${ad.short_id}`}
+          className="flex-1"
+        >
+          <Button variant="outline" size="sm" className="w-full">
+            <Eye className="w-4 h-4 mr-2" />
+            View
+          </Button>
+        </Link>
+        {isAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(ad.id, ad.ad_name)}
+            disabled={deletingId === ad.id}
+            className="text-danger hover:bg-red-50 hover:border-red-300"
+          >
+            {deletingId === ad.id ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+});
+
+AdCard.displayName = 'AdCard';
+
+// Loading skeleton for better UX
+const AdCardSkeleton = () => (
+  <div className="card p-4 animate-pulse">
+    <div className="aspect-square bg-surface-200 rounded-lg mb-4" />
+    <div className="space-y-2">
+      <div className="h-5 bg-surface-200 rounded w-3/4" />
+      <div className="h-4 bg-surface-200 rounded w-full" />
+      <div className="h-4 bg-surface-200 rounded w-1/2" />
+      <div className="h-3 bg-surface-200 rounded w-1/4" />
+    </div>
+    <div className="mt-4 h-9 bg-surface-200 rounded" />
+  </div>
+);
+
 export const AdsLibraryPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ads, setAds] = useState<Ad[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const isAdmin = searchParams.get('role') === 'admin';
 
-  useEffect(() => {
-    const fetchAds = async () => {
-      try {
+  const fetchAds = useCallback(async (page: number, append: boolean = false) => {
+    try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
         setLoading(true);
-        setError(null);
-
-        const response = await fetch(`${API_BASE_URL}/api/ads`);
-
-        if (!response.ok) {
-          throw new Error('Failed to load ads');
-        }
-
-        const result = await response.json();
-
-        if (!result.success || !result.data) {
-          throw new Error(result.error || 'Failed to load ads');
-        }
-
-        setAds(result.data);
-      } catch (err) {
-        console.error('[AdsLibraryPage] Error:', err);
-        setError(err instanceof Error ? err.message : 'Something went wrong');
-      } finally {
-        setLoading(false);
       }
-    };
+      setError(null);
 
-    fetchAds();
+      const response = await fetch(`${API_BASE_URL}/api/ads?page=${page}&limit=20`);
+
+      if (!response.ok) {
+        throw new Error('Failed to load ads');
+      }
+
+      const result = await response.json();
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to load ads');
+      }
+
+      if (append) {
+        setAds(prev => [...prev, ...result.data]);
+      } else {
+        setAds(result.data);
+      }
+      setPagination(result.pagination);
+    } catch (err) {
+      console.error('[AdsLibraryPage] Error:', err);
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
   }, []);
 
-  const handleDelete = async (adId: number, adName: string) => {
+  useEffect(() => {
+    fetchAds(1);
+  }, [fetchAds]);
+
+  const handleLoadMore = useCallback(() => {
+    if (pagination?.hasMore && !loadingMore) {
+      fetchAds(pagination.page + 1, true);
+    }
+  }, [pagination, loadingMore, fetchAds]);
+
+  const handleDelete = useCallback(async (adId: number, adName: string) => {
     if (!confirm(`Are you sure you want to delete "${adName}"? This action cannot be undone.`)) {
       return;
     }
@@ -86,6 +233,9 @@ export const AdsLibraryPage: React.FC = () => {
 
       // Remove ad from list
       setAds(prev => prev.filter(ad => ad.id !== adId));
+      if (pagination) {
+        setPagination(prev => prev ? { ...prev, total: prev.total - 1 } : null);
+      }
       showToast('Ad deleted successfully', 'success');
     } catch (err) {
       console.error('[AdsLibraryPage] Delete error:', err);
@@ -93,15 +243,24 @@ export const AdsLibraryPage: React.FC = () => {
     } finally {
       setDeletingId(null);
     }
-  };
+  }, [pagination]);
 
-  // Loading State
+  // Initial Loading State
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-meta-blue animate-spin mx-auto mb-4" />
-          <p className="text-16 text-text-secondary">Loading ads...</p>
+      <div className="min-h-screen bg-surface-50">
+        <div className="bg-white border-b border-divider">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="h-10 bg-surface-200 rounded w-48 mb-2 animate-pulse" />
+            <div className="h-5 bg-surface-200 rounded w-32 animate-pulse" />
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <AdCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -137,7 +296,7 @@ export const AdsLibraryPage: React.FC = () => {
             <div>
               <h1 className="text-32 font-bold text-text-primary mb-2">Ad Library</h1>
               <p className="text-14 text-text-secondary">
-                {ads.length} {ads.length === 1 ? 'ad' : 'ads'} total
+                {pagination?.total || ads.length} {(pagination?.total || ads.length) === 1 ? 'ad' : 'ads'} total
                 {isAdmin && <span className="ml-2 text-danger font-medium">(Admin Mode)</span>}
               </p>
             </div>
@@ -164,86 +323,51 @@ export const AdsLibraryPage: React.FC = () => {
             <p className="text-16 text-text-secondary">No ads found</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {ads.map(ad => (
-              <div key={ad.id} className="card p-4 hover:shadow-lg transition-shadow">
-                {/* Creative Preview */}
-                <div className="aspect-square bg-surface-100 rounded-lg mb-4 overflow-hidden relative">
-                  {ad.creative_file?.data ? (
-                    <img
-                      src={`data:${ad.creative_file.type};base64,${ad.creative_file.data}`}
-                      alt={ad.ad_name}
-                      className="w-full h-full object-cover"
-                    />
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {ads.map(ad => (
+                <AdCard
+                  key={ad.id}
+                  ad={ad}
+                  isAdmin={isAdmin}
+                  deletingId={deletingId}
+                  onDelete={handleDelete}
+                />
+              ))}
+              {/* Show skeletons while loading more */}
+              {loadingMore && [...Array(3)].map((_, i) => (
+                <AdCardSkeleton key={`skeleton-${i}`} />
+              ))}
+            </div>
+
+            {/* Load More Button */}
+            {pagination?.hasMore && (
+              <div className="mt-8 text-center">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-text-muted text-14">No Image</span>
-                    </div>
+                    `Load More (${ads.length} of ${pagination.total})`
                   )}
-                  {/* Platform Badge */}
-                  <div className="absolute top-2 right-2">
-                    {ad.preview_settings.platform === 'facebook' ? (
-                      <div className="w-8 h-8 bg-meta-blue rounded-full flex items-center justify-center">
-                        <Facebook className="w-4 h-4 text-white" />
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center">
-                        <Instagram className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Ad Info */}
-                <div className="space-y-2">
-                  <h3 className="text-16 font-semibold text-text-primary line-clamp-1">
-                    {ad.ad_name}
-                  </h3>
-                  <p className="text-14 text-text-secondary line-clamp-2">
-                    {ad.primary_text}
-                  </p>
-                  <Link
-                    to={`/advertiser/${ad.advertiser_username}`}
-                    className="text-12 text-meta-blue hover:underline block"
-                  >
-                    {ad.advertiser_name}
-                  </Link>
-                  <div className="flex items-center gap-1 text-12 text-text-muted">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(ad.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="mt-4 flex items-center gap-2">
-                  <Link
-                    to={`/preview/${ad.advertiser_username}/ad/${ad.short_id}`}
-                    className="flex-1"
-                  >
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Eye className="w-4 h-4 mr-2" />
-                      View
-                    </Button>
-                  </Link>
-                  {isAdmin && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(ad.id, ad.ad_name)}
-                      disabled={deletingId === ad.id}
-                      className="text-danger hover:bg-red-50 hover:border-red-300"
-                    >
-                      {deletingId === ad.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
+                </Button>
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* End of list indicator */}
+            {pagination && !pagination.hasMore && ads.length > 0 && (
+              <div className="mt-8 text-center text-14 text-text-muted">
+                Showing all {pagination.total} ads
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
