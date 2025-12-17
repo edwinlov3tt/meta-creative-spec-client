@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { Globe, Heart, MessageCircle, Share2 } from 'lucide-react';
 import type { PreviewAdData, PreviewDevice } from '@/types/previews';
 
@@ -8,7 +8,8 @@ interface MetaFeedPreviewProps {
   format: '1:1' | '4:5' | '9:16';
 }
 
-export const MetaFeedPreview: React.FC<MetaFeedPreviewProps> = ({
+// Memoize to prevent unnecessary re-renders
+export const MetaFeedPreview: React.FC<MetaFeedPreviewProps> = memo(({
   device,
   adData,
   format,
@@ -42,6 +43,8 @@ export const MetaFeedPreview: React.FC<MetaFeedPreviewProps> = ({
                 src={adData.profileImage}
                 alt={adData.brandName}
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(adData.brandName)}&background=1877f2&color=fff&size=128`;
                 }}
@@ -229,4 +232,7 @@ export const MetaFeedPreview: React.FC<MetaFeedPreviewProps> = ({
       </div>
     </div>
   );
-};
+});
+
+// Display name for React DevTools
+MetaFeedPreview.displayName = 'MetaFeedPreview';

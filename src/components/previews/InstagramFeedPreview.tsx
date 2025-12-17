@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import type { PreviewAdData, PreviewDevice } from '@/types/previews';
 
@@ -8,7 +8,8 @@ interface InstagramFeedPreviewProps {
   format: '1:1' | '4:5' | '9:16';
 }
 
-export const InstagramFeedPreview: React.FC<InstagramFeedPreviewProps> = ({
+// Memoize to prevent unnecessary re-renders
+export const InstagramFeedPreview: React.FC<InstagramFeedPreviewProps> = memo(({
   device,
   adData,
   format,
@@ -179,4 +180,7 @@ export const InstagramFeedPreview: React.FC<InstagramFeedPreviewProps> = ({
       </div>
     </div>
   );
-};
+});
+
+// Display name for React DevTools
+InstagramFeedPreview.displayName = 'InstagramFeedPreview';
